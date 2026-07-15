@@ -2,21 +2,19 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json .npmrc ./
+COPY file-server/package*.json file-server/.npmrc ./
 RUN npm ci
 
-COPY . .
+COPY file-server/ ./
 RUN npm run build
 
----
+# --- Runner ---
 
 FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-COPY package*.json .npmrc ./
-RUN npm ci --omit=dev
-
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
 RUN mkdir -p public/uploads
