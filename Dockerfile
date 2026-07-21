@@ -3,7 +3,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY file-server/package*.json file-server/.npmrc ./
-RUN npm install --no-package-lock
+RUN npm ci
 
 COPY file-server/ ./
 RUN npm run build
