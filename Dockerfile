@@ -2,10 +2,10 @@
 
 WORKDIR /app
 
-COPY file-server/package*.json file-server/.npmrc ./
-RUN npm ci
+COPY package*.json .npmrc ./
+RUN npm install
 
-COPY file-server/ ./
+COPY . .
 RUN npm run build
 
 # --- Runner ---
