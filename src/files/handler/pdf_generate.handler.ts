@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { v4 } from "uuid";
@@ -7,6 +7,8 @@ import * as ejs from "ejs";
 
 @Injectable()
 export class PdfGenerateHandler {
+  private readonly logger = new Logger(PdfGenerateHandler.name);
+
   async pdfGenerate(
     template: string,
     data: object = {},
@@ -20,8 +22,8 @@ export class PdfGenerateHandler {
       `${v4()}.pdf`
     );
 
+    const browser = await puppeteer.launch();
     try {
-      const browser = await puppeteer.launch();
       const page = await browser.newPage();
 
       const html = await readFile(filePath, { encoding: "utf8" });
@@ -44,13 +46,13 @@ export class PdfGenerateHandler {
         ...options,
       };
 
-      const buffer = await page.pdf(options).catch((e) => {
-        console.log("e", e);
-      });
-      await browser.close();
+      const buffer = await page.pdf(options);
       return isFile ? fileOutput : buffer;
     } catch (e) {
-      console.log(e);
+      this.logger.error(`PDF generation failed for template "${template}": ${e.message}`, e.stack);
+      throw e;
+    } finally {
+      await browser.close();
     }
   }
 }

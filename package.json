@@ -23,6 +23,7 @@
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.10",
+    "helmet": "^8.3.0",
     "jwks-rsa": "^3.1.0",
     "morgan": "^1.10.1",
     "multer": "^1.4.4-lts.1",
