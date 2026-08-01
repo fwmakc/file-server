@@ -2,14 +2,14 @@
 
 File upload, image processing, PDF generation, and static file serving microservice.
 
-Part of the fwmakc microservices split (Issue #6, Stage 6).
+Port **3002**. Part of the microservices split (Stage 6, Issue #6).
 
 ## Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/files/upload` | Upload files (multipart form, field: `file`) |
-| GET | `/uploads/*` | Static file serving |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/files/upload` | JWT | Upload files (multipart form, field: `file`) |
+| GET | `/uploads/*` | — | Static file serving |
 
 ## Environment
 
@@ -28,3 +28,14 @@ cp .env.example .env
 npm install
 npm run dev
 ```
+
+## Port Assignments
+
+| Service | Port |
+|---------|------|
+| auth-server | 3001 |
+| **file-server** | **3002** |
+| message-server | 3003 |
+| chat-server | 3004 |
+| event-server | 3005 |
+| api-server | 5000 |
