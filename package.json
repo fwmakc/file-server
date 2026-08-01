@@ -19,6 +19,7 @@
     "@nestjs/serve-static": "^4.0.0",
     "@nestjs/swagger": "^7.3.0",
     "@sentry/nestjs": "^10.21.0",
+    "api-server-toolkit": "github:fwmakc/api-server-toolkit#master",
     "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
