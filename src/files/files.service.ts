@@ -37,7 +37,7 @@ export class FilesService {
       return undefined;
     }
 
-    const isImage = this.isImageHandler.isImage(file);
+    const isImage = await this.isImageHandler.isImage(file);
     if (isImage) {
       file = await this.imageProcess(file, options);
     }

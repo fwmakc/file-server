@@ -5,7 +5,7 @@ import { SentryGlobalFilter } from "@sentry/nestjs/setup";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { AuthModule } from "@src/auth/auth.module";
 import { FilesModule } from "@src/files/files.module";
-import { HealthModule } from "@src/health/health.module";
+import { HealthModule } from "api-server-toolkit/health";
 
 @Module({
   imports: [
@@ -16,7 +16,7 @@ import { HealthModule } from "@src/health/health.module";
       serveRoot: process.env.UPLOADS_URL || "/uploads",
     }),
     FilesModule,
-    HealthModule,
+    HealthModule.forRoot("file-server"),
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
