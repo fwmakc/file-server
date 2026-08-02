@@ -1,5 +1,9 @@
 # File Server
 
+[![Tests](https://github.com/fwmakc/file-server/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/file-server/actions/workflows/test.yml)
+[![Version](https://img.shields.io/badge/version-v2.0.0-blue)](https://github.com/fwmakc/file-server/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/file-server/blob/master/LICENSE)
+
 > File upload, image processing, and PDF generation service.
 
 ## What is this?

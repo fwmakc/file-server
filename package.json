@@ -4,6 +4,22 @@
   "description": "File service — upload, image processing, PDF generation, static serving",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "github:fwmakc/file-server"
+  },
+  "keywords": [
+    "nestjs",
+    "upload",
+    "image-processing",
+    "sharp",
+    "pdf",
+    "puppeteer"
+  ],
+  "bugs": {
+    "url": "https://github.com/fwmakc/file-server/issues"
+  },
+  "homepage": "https://github.com/fwmakc/file-server#readme",
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
