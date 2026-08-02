@@ -88,6 +88,50 @@ When you outgrow local storage:
 2. Replace `ServeStaticModule` with S3 presigned URLs
 3. Consider Lambda for image processing (offload from Node.js)
 
+## AI-Friendly Documentation
+
+This service is designed for AI-assisted development. You can feed context
+to any LLM (ChatGPT, Claude, Cursor, Copilot) and get code that follows
+all conventions — without reading the entire codebase.
+
+### ai-context.md
+Auto-generated structured reference: every controller, route, service,
+entity, and DTO. Run `npm run ai-context` to regenerate.
+
+### Swagger UI
+Interactive API exploration at `/swagger` — test the upload endpoint live,
+see request schemas, copy curl commands.
+
+### ReDoc
+Clean, readable documentation at `/redoc` — share with your team.
+
+### Why this matters
+An LLM with `ai-context.md` can generate new file handlers, validators,
+and EJS templates that match your existing patterns — on the first try,
+without trial and error.
+
+## Backend-Only — Bring Your Own Frontend
+
+This service handles file storage and processing. No frontend included.
+
+The upload endpoint accepts standard `multipart/form-data` — works with
+any frontend: React dropzone, Vue upload component, mobile camera capture,
+or plain `<input type="file">`.
+
+## Integrating into existing infrastructure
+
+Already have a file storage solution? You can adopt file-server selectively:
+
+- **Need image processing?** Run file-server alongside your existing API.
+  Your frontend uploads to file-server, gets back a URL — no changes to
+  your main API.
+- **Already have S3/MinIO?** Replace `SaveHandler` with S3 upload logic.
+  The upload validation pipeline (type checking, size limits, resize)
+  stays the same.
+- **Need PDF generation?** File-server includes Puppeteer + EJS templates.
+  POST your data, get a PDF back — no need to set up a separate rendering
+  service.
+
 ## Related services
 
 - [auth-server](https://github.com/fwmakc/auth-server) — JWT verification
