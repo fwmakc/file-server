@@ -4,9 +4,9 @@
 [![Version](https://img.shields.io/badge/version-v0.4.0-blue)](https://github.com/fwmakc/file-server/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/file-server/blob/master/LICENSE)
 
-> File upload, image processing, and PDF generation service.
+> Reference implementation: stateless service pattern — uploads, image processing, PDF generation, no database.
 
-## What is this?
+## What This Is
 
 A working scaffold for file handling — upload, validation, image resize/convert, and PDF
 generation from EJS templates. Part of a
@@ -22,6 +22,17 @@ file-server → local filesystem (uploads volume)
 
 **Dependencies:** auth-server (JWT, optional — upload endpoint currently unauthenticated)
 **Dependents:** nginx (routes `/files`, `/uploads`)
+
+## Pattern
+
+This service demonstrates the **stateless service pattern** in the toolkit stack:
+
+- **No database** — no TypeORM connection, no entities, no migrations
+- **Stateless** — horizontally scalable, any instance handles any request
+- **Stream processing** — file upload via multipart, image resize via sharp
+- **Template rendering** — PDF generation from EJS templates
+
+Clone this when you need: file handling, media processing, document generation, any stateless workload.
 
 ## Quick start
 
