@@ -1,4 +1,4 @@
-import { SaveHandler } from './save.handler';
+import { SaveHandler, sanitizeFilename } from './save.handler';
 import { FilesInterface } from '../files.interface';
 
 jest.mock('fs/promises', () => ({
@@ -13,6 +13,7 @@ jest.mock('fs', () => ({
 
 import { access, mkdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { join } from 'path';
 
 describe('SaveHandler', () => {
   let handler: SaveHandler;
@@ -126,6 +127,46 @@ describe('SaveHandler', () => {
 
       const calledPath = (writeFile as jest.Mock).mock.calls[0][0];
       expect(calledPath).not.toContain('..');
+    });
+  });
+
+  describe('filename sanitization (path traversal)', () => {
+    it('extracts basename from traversal paths', () => {
+      expect(sanitizeFilename('../../../../etc/passwd')).toBe('passwd');
+      expect(sanitizeFilename('..\\..\\windows\\system32\\evil.dll')).toBe('evil.dll');
+      expect(sanitizeFilename('/abs/path/photo.png')).toBe('photo.png');
+    });
+
+    it('returns empty for dot names and empty input', () => {
+      expect(sanitizeFilename('..')).toBe('');
+      expect(sanitizeFilename('.')).toBe('');
+      expect(sanitizeFilename('')).toBe('');
+      expect(sanitizeFilename(undefined)).toBe('');
+      expect(sanitizeFilename('../../..')).toBe('');
+    });
+
+    it('strips control characters', () => {
+      expect(sanitizeFilename('file\u0000.txt')).toBe('file.txt');
+      expect(sanitizeFilename('a\u001fb.png')).toBe('ab.png');
+    });
+
+    it('never writes outside the upload folder via originalname', async () => {
+      (access as jest.Mock).mockResolvedValue(undefined);
+      (existsSync as jest.Mock).mockReturnValue(false);
+      (writeFile as jest.Mock).mockResolvedValue(undefined);
+
+      await handler.save(makeFile('../../../owned.txt'), {} as any);
+
+      const calledPath = (writeFile as jest.Mock).mock.calls[0][0];
+      expect(calledPath).toBe(join('/tmp/uploads', 'owned.txt'));
+      expect(calledPath).not.toContain('..');
+    });
+
+    it('returns error when originalname reduces to nothing', async () => {
+      const result = await handler.save(makeFile('../..'), {} as any);
+
+      expect(result.error).toBe('Некорректное имя файла');
+      expect(writeFile).not.toHaveBeenCalled();
     });
   });
 });

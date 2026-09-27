@@ -30,7 +30,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
-RUN mkdir -p public/uploads public/generated
+RUN mkdir -p public/uploads public/generated && chown -R node:node public
 
 ENV NODE_ENV=production
 ENV ROOT_PATH=.

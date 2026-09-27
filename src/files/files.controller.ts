@@ -7,7 +7,7 @@ import {
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiExcludeController } from "@nestjs/swagger";
 import { Multer } from "multer";
-import { Data } from "api-server-toolkit";
+import { Account, Data } from "api-server-toolkit";
 import { FilesService } from "./files.service";
 import { OptionsFilesDto } from "./dto/options.files.dto";
 
@@ -16,6 +16,7 @@ import { OptionsFilesDto } from "./dto/options.files.dto";
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
+  @Account()
   @Post("upload")
   @UseInterceptors(FilesInterceptor("file"))
   async filesUploadImage(

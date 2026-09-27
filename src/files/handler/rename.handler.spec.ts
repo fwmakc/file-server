@@ -67,4 +67,18 @@ describe('RenameHandler', () => {
     handler.rename(file);
     expect(file.originalname).toBe('photo.png');
   });
+
+  it('strips path separators from extension (no traversal)', () => {
+    const file = makeFile('../../evil');
+    const result = handler.rename(file);
+    expect(result.originalname).toBe('fixed-uuid-1234.evil');
+    expect(result.originalname).not.toContain('/');
+    expect(result.originalname).not.toContain('..');
+  });
+
+  it('drops non-alphanumeric characters and caps extension length', () => {
+    const file = makeFile('photo.png');
+    const result = handler.rename(file, '../ extremely&long_extension!!');
+    expect(result.originalname).toBe('fixed-uuid-1234.extremelylong_ex');
+  });
 });

@@ -9,7 +9,7 @@ async function main() {
 
   Sentry.setup(app);
   Helmet.setup(app);
-  Cors.setup(app, true);
+  Cors.setup(app);
   Morgan.setup(app);
   CookieParser.setup(app);
   Passport.setup(app);

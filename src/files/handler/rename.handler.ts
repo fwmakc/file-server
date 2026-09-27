@@ -9,10 +9,14 @@ export class RenameHandler {
       const { originalname } = file;
       extension = originalname.split(".").pop();
     }
+    // Только буквенно-цифровой хвост — слэши/точки в расширении дают traversal
+    const ext = String(extension)
+      .replace(/[^\w]/gu, "")
+      .slice(0, 16);
     const name = v4();
     return new FilesInterface({
       buffer: file.buffer,
-      originalname: `${name}.${extension}`,
+      originalname: ext ? `${name}.${ext}` : name,
       mimetype: file.mimetype,
       size: file.size,
     });
