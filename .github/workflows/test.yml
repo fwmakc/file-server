@@ -10,6 +10,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # Tests never launch a browser; skipping the download avoids multi-hundred-MB
+    # fetches that stall on runners (puppeteer 21 reads this exact var name)
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+
     services:
       postgres:
         image: postgres:16-alpine

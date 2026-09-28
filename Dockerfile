@@ -2,7 +2,9 @@
 
 WORKDIR /app
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# Correct var name for puppeteer 21 (PUPPETEER_SKIP_CHROMIUM_DOWNLOAD is ignored) —
+# chromium comes from apk in the runner stage
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 COPY file-server/package*.json file-server/.npmrc ./
 RUN npm install --legacy-peer-deps
