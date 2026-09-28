@@ -10,11 +10,11 @@ async function main() {
   Sentry.setup(app);
   Helmet.setup(app);
   Cors.setup(app);
-  Morgan.setup(app);
   CookieParser.setup(app);
   Passport.setup(app);
   ValidationPipe.setup(app);
   Log.setup(app);
+  Morgan.setup(app);
   Prefix.setup(app);
   Swagger.setup(app);
 
