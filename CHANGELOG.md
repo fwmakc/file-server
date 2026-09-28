@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.1] - 2026-09-28
 ### Changed
 - Node.js runtime bumped 22 → 24 LTS: Docker images `node:24-alpine`, CI `node-version: 24`.
+- `sharp` 0.32 → 0.34: 0.32 has no prebuilt binaries for Node 24 (native build hangs the Docker build on CI); 0.34 ships platform prebuilds incl. linuxmusl-x64.
 - Toolkit pinned to `api-server-toolkit#v0.18.0` (adds `ApiKeyGuard` / `@ApiKey()`; no behavior change for existing routes).
 - Dockerfile builds with explicit `npx tsc -p tsconfig.build.json` instead of `nest build` (the latter silently produced no `dist` under Node 24 + current CLI); added `tsconfig.build.json` excluding test files.
 
