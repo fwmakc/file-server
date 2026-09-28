@@ -1,21 +1,21 @@
-﻿FROM node:22-alpine AS builder
+﻿FROM node:24-alpine AS builder
 
 WORKDIR /app
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-COPY file-server/package*.json .npmrc ./
+COPY file-server/package*.json file-server/.npmrc ./
 RUN npm install --legacy-peer-deps
 
 COPY api-server-toolkit/dist ./node_modules/api-server-toolkit/dist
 COPY api-server-toolkit/src ./node_modules/api-server-toolkit/src
 
 COPY file-server/ .
-RUN npm run build
+RUN npx tsc -p tsconfig.build.json
 
 # --- Runner ---
 
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 RUN apk add --no-cache \
       chromium \

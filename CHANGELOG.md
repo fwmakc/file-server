@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-28
+### Changed
+- Node.js runtime bumped 22 → 24 LTS: Docker images `node:24-alpine`, CI `node-version: 24`.
+- Toolkit pinned to `api-server-toolkit#v0.18.0` (adds `ApiKeyGuard` / `@ApiKey()`; no behavior change for existing routes).
+- Dockerfile builds with explicit `npx tsc -p tsconfig.build.json` instead of `nest build` (the latter silently produced no `dist` under Node 24 + current CLI); added `tsconfig.build.json` excluding test files.
+
+### Fixed
+- Dockerfile: `COPY` of `.npmrc` used a path relative to the build-context root instead of `file-server/`, so the image could not build at all (`"/.npmrc": not found`).
+- Toolkit peer dependencies `typeorm` and `@nestjs/typeorm` were not declared in this service (`npm install --legacy-peer-deps` does not auto-install peers) — the container crashed at boot with `Cannot find module 'typeorm'`.
+
 ## [0.5.0] - 2026-09-28
 
 Security hardening release.
