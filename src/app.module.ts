@@ -6,6 +6,7 @@ import { ServeStaticModule } from "@nestjs/serve-static";
 import { AuthModule } from "@src/auth/auth.module";
 import { FilesModule } from "@src/files/files.module";
 import { HealthModule } from "api-server-toolkit/health";
+import { MetricsModule } from "api-server-toolkit/metrics";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { HealthModule } from "api-server-toolkit/health";
     }),
     FilesModule,
     HealthModule.forRoot("file-server"),
+    MetricsModule.forRoot({ service: "file-server" }),
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
