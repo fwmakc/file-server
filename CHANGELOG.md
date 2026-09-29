@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-29
+
+### Added
+- `IFileStorage` storage abstraction (`src/files/storage/`): `put` / `exists` / `get` / `delete`, backend selected by the `FILE_STORAGE` env (`local` default, `s3`).
+- S3 backend (`S3Storage`, `@aws-sdk/client-s3` v3): any S3-compatible API — AWS S3, MinIO, Yandex Object Storage (`S3_ENDPOINT`, `S3_FORCE_PATH_STYLE`) — required for horizontal scaling.
+- In s3 mode a streaming download proxy serves objects at the same `UPLOADS_URL` prefix (replaces `ServeStaticModule`), so upload URLs are identical in both modes; `S3_PUBLIC_URL` (CDN / public bucket base) switches returned URLs to direct links and skips the proxy.
+- `LocalStorage` (former inline fs logic of `SaveHandler`): mkdir-recursive on write, resolve-within-root defense, streaming reads.
+
+### Changed
+- `SaveHandler` writes through the storage abstraction instead of touching the filesystem directly; the "file already exists" check and the returned URL are backend-agnostic now.
+
+### Fixed
+- Local static serving returned 500 on missing files: `rootPath` was relative (`./public/uploads`) and `res.sendFile` requires an absolute path — now resolved at startup (404 as expected).
+
 ## [0.5.1] - 2026-09-28
 ### Changed
 - Node.js runtime bumped 22 → 24 LTS: Docker images `node:24-alpine`, CI `node-version: 24`.

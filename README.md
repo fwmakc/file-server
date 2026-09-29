@@ -73,8 +73,16 @@ Options are passed as JSON in the `options` form field:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | 3002 | HTTP port |
-| `UPLOADS_PATH` | ./public/uploads | Storage directory |
-| `UPLOADS_URL` | /uploads | URL prefix for static serving |
+| `FILE_STORAGE` | local | Storage backend: `local` or `s3` |
+| `UPLOADS_PATH` | ./public/uploads | Storage directory (local backend) |
+| `UPLOADS_URL` | /uploads | Public URL prefix (static serving in local mode, download proxy in s3 mode) |
+| `S3_BUCKET` | — | Bucket name (required in s3 mode) |
+| `S3_REGION` | us-east-1 | S3 region |
+| `S3_ENDPOINT` | — | Custom endpoint (MinIO, Yandex Object Storage, …) |
+| `S3_ACCESS_KEY_ID` | — | S3 access key |
+| `S3_SECRET_ACCESS_KEY` | — | S3 secret key |
+| `S3_FORCE_PATH_STYLE` | false | `true` for MinIO-style path addressing (`endpoint/bucket/key`) |
+| `S3_PUBLIC_URL` | — | Absolute base returned in upload URLs (CDN / public bucket); unset = serve via file-server proxy |
 | `UPLOADS_MAX_SIZE` | 1048576 | Max upload size (bytes) |
 | `UPLOADS_ALLOW_TYPES` | — | Comma-separated MIME types |
 | `UPLOADS_IMAGE_MAX_WIDTH` | 3840 | Max image width before resize |
@@ -96,12 +104,33 @@ In Docker, system Chromium is used (`/usr/bin/chromium-browser`) via `PUPPETEER_
 The Dockerfile installs system Chromium and dependencies for Puppeteer.
 Uploads are stored in a Docker volume (`uploads_data`).
 
-## Migration: replace with S3/MinIO
+## Storage backends
 
-When you outgrow local storage:
-1. Replace `SaveHandler` with S3 upload logic
-2. Replace `ServeStaticModule` with S3 presigned URLs
-3. Consider Lambda for image processing (offload from Node.js)
+Uploads go through the `IFileStorage` abstraction (`src/files/storage/`);
+the backend is selected by `FILE_STORAGE`:
+
+- **`local`** (default) — files under `UPLOADS_PATH`, served statically by
+  `ServeStaticModule` at `UPLOADS_URL`. Single-instance only: the disk is
+  ephemeral per container unless you mount a shared volume.
+- **`s3`** — files stored in any S3-compatible API (AWS S3, MinIO,
+  Yandex Object Storage). Required for horizontal scaling: all instances
+  see the same data and containers stay stateless.
+
+In s3 mode the `ServeStaticModule` is replaced by a streaming download
+proxy at the same `UPLOADS_URL` prefix, so object URLs are identical in
+both modes (`/uploads/<folder>/<file>`). Set `S3_PUBLIC_URL` (CDN or a
+public bucket base) to return direct URLs and skip the proxy entirely.
+
+MinIO example:
+
+```env
+FILE_STORAGE=s3
+S3_BUCKET=uploads
+S3_ENDPOINT=http://minio:9000
+S3_FORCE_PATH_STYLE=true
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=minioadmin
+```
 
 ## AI-Friendly Documentation
 

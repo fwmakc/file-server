@@ -1,9 +1,9 @@
-import { Injectable } from "@nestjs/common";
-import { access, mkdir, writeFile } from "fs/promises";
-import { existsSync } from "fs";
-import { join } from "path";
+import { Inject, Injectable } from "@nestjs/common";
 import { FilesInterface } from "../files.interface";
 import { OptionsFilesDto } from "../dto/options.files.dto";
+import { FILES_STORAGE, IFileStorage } from "../storage/storage.interface";
+import { isS3Storage } from "../storage/storage.module";
+import { sanitizeFolderPath } from "../storage/storage.utils";
 
 /**
  * Оставляет только имя файла: любой путь (../, абсолютные пути, слэши)
@@ -21,11 +21,13 @@ export const sanitizeFilename = (name: unknown): string => {
 
 @Injectable()
 export class SaveHandler {
-  async save(file: FilesInterface, options: OptionsFilesDto) {
-    let { folder } = options;
-    const { replace } = options;
+  constructor(
+    @Inject(FILES_STORAGE) private readonly storage: IFileStorage
+  ) {}
 
-    folder = `${folder || ""}`.replace(/[^\w\d\/]/gu, "");
+  async save(file: FilesInterface, options: OptionsFilesDto) {
+    const { replace } = options;
+    const folder = sanitizeFolderPath(options.folder);
 
     if (!file) {
       return {
@@ -40,24 +42,16 @@ export class SaveHandler {
       };
     }
 
-    const uploadFolder = join(process.env.UPLOADS_PATH, folder);
+    const key = [folder, filename].filter(Boolean).join("/");
 
     try {
-      await access(uploadFolder);
-    } catch (e) {
-      await mkdir(uploadFolder, { recursive: true });
-    }
+      if (!replace && (await this.storage.exists(key))) {
+        return {
+          error: "Файл уже существует",
+        };
+      }
 
-    const filePath = join(uploadFolder, filename);
-
-    if (!replace && existsSync(filePath)) {
-      return {
-        error: "Файл уже существует",
-      };
-    }
-
-    try {
-      await writeFile(filePath, file.buffer);
+      await this.storage.put(key, file.buffer, file.mimetype);
     } catch (e) {
       return {
         error: "Ошибка при записи файла",
@@ -65,7 +59,20 @@ export class SaveHandler {
     }
 
     return {
-      url: `${process.env.UPLOADS_URL}/${folder ? `${folder}/` : ""}${filename}`,
+      url: `${this.urlBase()}/${key}`,
     };
+  }
+
+  /**
+   * База публичных URL: при S3 с настроенным S3_PUBLIC_URL (CDN/публичный
+   * бакет) отдача идёт мимо file-server, иначе — через DOWNLOAD-роут по
+   * UPLOADS_URL (тот же путь, что обслуживает статика в local-режиме).
+   */
+  private urlBase(): string {
+    const base =
+      isS3Storage() && process.env.S3_PUBLIC_URL
+        ? process.env.S3_PUBLIC_URL
+        : process.env.UPLOADS_URL || "/uploads";
+    return base.replace(/\/+$/u, "");
   }
 }
