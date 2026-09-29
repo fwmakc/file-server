@@ -40,6 +40,6 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 USER node
 EXPOSE 3002
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=15s \
-  CMD wget -qO- http://localhost:3002/health || exit 1
+  CMD wget -qO- http://127.0.0.1:3002/health || exit 1
 
 CMD ["node", "-r", "tsconfig-paths/register", "dist/main"]
