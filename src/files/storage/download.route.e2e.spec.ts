@@ -2,10 +2,7 @@ import { Test } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
 import { Readable } from "stream";
 import { StorageDownloadController } from "./download.controller";
-import {
-  FILES_STORAGE,
-  StorageNotFoundError,
-} from "./storage.interface";
+import { FILES_STORAGE, StorageNotFoundError } from "./storage.interface";
 
 process.env.UPLOADS_URL = "/uploads";
 

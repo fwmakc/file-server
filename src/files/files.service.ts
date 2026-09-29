@@ -24,7 +24,7 @@ export class FilesService {
     protected readonly maxSizeHandler: MaxSizeHandler,
     protected readonly pdfGenerateHandler: PdfGenerateHandler,
     protected readonly renameHandler: RenameHandler,
-    protected readonly saveHandler: SaveHandler
+    protected readonly saveHandler: SaveHandler,
   ) {}
 
   async fileProcess(file: FilesInterface, options: OptionsFilesDto) {
@@ -54,7 +54,7 @@ export class FilesService {
     if (resize) {
       file.buffer = await this.imageResizeHandler.imageResize(file.buffer);
       const { size } = await this.getImageMetadataHandler.getImageMetadata(
-        file.buffer
+        file.buffer,
       );
       file.size = size;
     }
@@ -97,7 +97,7 @@ export class FilesService {
   async pdfGenerate(
     template: string,
     data: object = {},
-    options: object = {}
+    options: object = {},
   ): Promise<any> {
     return await this.pdfGenerateHandler.pdfGenerate(template, data, options);
   }

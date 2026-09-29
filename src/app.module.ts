@@ -31,8 +31,6 @@ const serveStatic = isS3Storage()
     HealthModule.forRoot("file-server"),
     MetricsModule.forRoot({ service: "file-server" }),
   ],
-  providers: [
-    { provide: APP_FILTER, useClass: SentryGlobalFilter },
-  ],
+  providers: [{ provide: APP_FILTER, useClass: SentryGlobalFilter }],
 })
 export class AppModule {}

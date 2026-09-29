@@ -5,7 +5,7 @@ import { GetImageMetadataHandler } from "./get_image_metadata.handler";
 @Injectable()
 export class ImageResizeHandler {
   constructor(
-    protected readonly getImageMetadataHandler: GetImageMetadataHandler
+    protected readonly getImageMetadataHandler: GetImageMetadataHandler,
   ) {}
 
   async imageResizeProcess(file: Buffer, options) {

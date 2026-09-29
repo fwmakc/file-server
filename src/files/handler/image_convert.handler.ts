@@ -6,7 +6,7 @@ import { GetImageMetadataHandler } from "./get_image_metadata.handler";
 @Injectable()
 export class ImageConvertHandler {
   constructor(
-    protected readonly getImageMetadataHandler: GetImageMetadataHandler
+    protected readonly getImageMetadataHandler: GetImageMetadataHandler,
   ) {}
   async convertMultipagesToWebp(file: Buffer): Promise<Buffer> {
     const { pages } = await this.getImageMetadataHandler.getImageMetadata(file);
@@ -37,7 +37,7 @@ export class ImageConvertHandler {
     }
 
     const { size } = await this.getImageMetadataHandler.getImageMetadata(
-      file.buffer
+      file.buffer,
     );
 
     return new FilesInterface({

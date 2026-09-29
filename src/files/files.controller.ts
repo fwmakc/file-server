@@ -21,7 +21,7 @@ export class FilesController {
   @UseInterceptors(FilesInterceptor("file"))
   async filesUploadImage(
     @UploadedFiles() files: Express.Multer.File[],
-    @Data("options") options?: OptionsFilesDto
+    @Data("options") options?: OptionsFilesDto,
   ) {
     return await this.filesService.process(files, options);
   }

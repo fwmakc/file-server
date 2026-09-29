@@ -13,13 +13,13 @@ export class PdfGenerateHandler {
     template: string,
     data: object = {},
     options: puppeteer.PDFOptions = {},
-    isFile = false
+    isFile = false,
   ) {
     const filePath = join(process.cwd(), "views/pdf", `${template}.ejs`);
     const fileOutput = join(
       process.cwd(),
       `public/generated/${template}`,
-      `${v4()}.pdf`
+      `${v4()}.pdf`,
     );
 
     const browser = await puppeteer.launch({
@@ -52,7 +52,10 @@ export class PdfGenerateHandler {
       const buffer = await page.pdf(options);
       return isFile ? fileOutput : buffer;
     } catch (e) {
-      this.logger.error(`PDF generation failed for template "${template}": ${e.message}`, e.stack);
+      this.logger.error(
+        `PDF generation failed for template "${template}": ${e.message}`,
+        e.stack,
+      );
       throw e;
     } finally {
       await browser.close();

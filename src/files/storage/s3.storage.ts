@@ -33,14 +33,14 @@ export class S3Storage implements IFileStorage {
         Key: key,
         Body: buffer,
         ...(contentType ? { ContentType: contentType } : {}),
-      })
+      }),
     );
   }
 
   async exists(key: string): Promise<boolean> {
     try {
       await this.client.send(
-        new HeadObjectCommand({ Bucket: this.bucket, Key: key })
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
       );
       return true;
     } catch (e) {
@@ -52,7 +52,7 @@ export class S3Storage implements IFileStorage {
   async get(key: string): Promise<StoredObject> {
     try {
       const response = await this.client.send(
-        new GetObjectCommand({ Bucket: this.bucket, Key: key })
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       );
       return {
         stream: response.Body as Readable,
@@ -67,7 +67,7 @@ export class S3Storage implements IFileStorage {
 
   async delete(key: string): Promise<void> {
     await this.client.send(
-      new DeleteObjectCommand({ Bucket: this.bucket, Key: key })
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
     );
   }
 

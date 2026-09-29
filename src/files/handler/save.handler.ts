@@ -21,9 +21,7 @@ export const sanitizeFilename = (name: unknown): string => {
 
 @Injectable()
 export class SaveHandler {
-  constructor(
-    @Inject(FILES_STORAGE) private readonly storage: IFileStorage
-  ) {}
+  constructor(@Inject(FILES_STORAGE) private readonly storage: IFileStorage) {}
 
   async save(file: FilesInterface, options: OptionsFilesDto) {
     const { replace } = options;

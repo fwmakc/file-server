@@ -10,9 +10,7 @@ export class RenameHandler {
       extension = originalname.split(".").pop();
     }
     // Только буквенно-цифровой хвост — слэши/точки в расширении дают traversal
-    const ext = String(extension)
-      .replace(/[^\w]/gu, "")
-      .slice(0, 16);
+    const ext = String(extension).replace(/[^\w]/gu, "").slice(0, 16);
     const name = v4();
     return new FilesInterface({
       buffer: file.buffer,

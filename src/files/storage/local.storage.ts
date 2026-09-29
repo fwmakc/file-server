@@ -9,7 +9,8 @@ import {
 
 export class LocalStorage implements IFileStorage {
   constructor(
-    private readonly root: string = process.env.UPLOADS_PATH || "./public/uploads"
+    private readonly root: string = process.env.UPLOADS_PATH ||
+      "./public/uploads",
   ) {}
 
   async put(key: string, buffer: Buffer): Promise<void> {
