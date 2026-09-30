@@ -8,6 +8,7 @@ import { AuthModule } from "@src/auth/auth.module";
 import { FilesModule } from "@src/files/files.module";
 import { HealthModule } from "api-server-toolkit/health";
 import { MetricsModule } from "api-server-toolkit/metrics";
+import { AuditModule } from "api-server-toolkit";
 import { isS3Storage } from "./files/storage/storage.module";
 
 // В s3-режиме локальный диск пуст — отдачу делает StorageDownloadController
@@ -30,6 +31,7 @@ const serveStatic = isS3Storage()
     FilesModule,
     HealthModule.forRoot("file-server"),
     MetricsModule.forRoot({ service: "file-server" }),
+    AuditModule.forRoot(),
   ],
   providers: [{ provide: APP_FILTER, useClass: SentryGlobalFilter }],
 })
