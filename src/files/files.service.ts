@@ -75,11 +75,27 @@ export class FilesService {
     const filesList: FilesInterface[] = [];
 
     for (const item of files) {
-      let file = new FilesInterface(item);
-      file = await this.fileProcess(file, options);
+      const processed = await this.fileProcess(
+        new FilesInterface(item),
+        options,
+      );
 
-      const { error, url } = await this.saveHandler.save(file, options);
-      const { mimetype, originalname, size, timestamp } = file;
+      if (!processed) {
+        // файл отклонён фильтрами (размер/тип): раньше save(undefined)
+        // возвращал ошибку, но деструктуризация полей с undefined роняла
+        // весь запрос в 500 вместо записи с error в ответе
+        filesList.push({
+          error: "Файл отклонён: недопустимый размер или тип",
+          mimetype: item.mimetype,
+          originalname: item.originalname,
+          size: item.size,
+          timestamp: new Date(),
+        } as FilesInterface);
+        continue;
+      }
+
+      const { error, url } = await this.saveHandler.save(processed, options);
+      const { mimetype, originalname, size, timestamp } = processed;
 
       filesList.push({
         error,

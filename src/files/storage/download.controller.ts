@@ -55,6 +55,12 @@ export class StorageDownloadController {
     if (stored.contentLength) {
       res.setHeader("Content-Length", String(stored.contentLength));
     }
+    // attachment: загруженный пользователем файл (например, text/html)
+    // не должен исполняться в origin-контексте при прямом открытии URL
+    const filename = (key.split("/").pop() || "file")
+      .replace(/[^\x20-\x7e]/g, "_")
+      .replace(/["\\]/g, "_");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     return new StreamableFile(stored.stream);
   }
 }

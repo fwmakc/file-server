@@ -207,6 +207,31 @@ describe("FilesService", () => {
 
       expect(result[0].error).toBe("Файл уже существует");
     });
+
+    it("returns an error entry (not a 500) for a file rejected by filters", async () => {
+      // раньше fileProcess → undefined, save(undefined) давал error,
+      // но деструктуризация полей с undefined роняла весь запрос
+      handlers.maxSizeHandler.maxSize.mockReturnValue(false);
+      handlers.saveHandler.save.mockClear();
+
+      const result = await service.process(
+        [
+          {
+            buffer: Buffer.from("aaaa"),
+            mimetype: "application/zip",
+            originalname: "big.zip",
+            size: 999999,
+          },
+        ] as any[],
+        {} as any,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].error).toContain("отклонён");
+      expect(result[0].originalname).toBe("big.zip");
+      expect(result[0].url).toBeUndefined();
+      expect(handlers.saveHandler.save).not.toHaveBeenCalled();
+    });
   });
 
   describe("pdfGenerate", () => {

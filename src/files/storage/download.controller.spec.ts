@@ -45,13 +45,32 @@ describe("StorageDownloadController", () => {
     expect(mockRes.setHeader).toHaveBeenCalledWith("Content-Length", "5");
   });
 
-  it("skips headers when metadata is absent", async () => {
+  it("sends Content-Disposition attachment with an ASCII-safe filename", async () => {
+    storage.get.mockResolvedValue({
+      stream: Readable.from(["<h1>x</h1>"]),
+      contentType: "text/html",
+    });
+    const mockRes = res();
+
+    await controller.download("uploads/отчёт.html", mockRes);
+
+    const disposition = mockRes.setHeader.mock.calls.find(
+      ([h]) => h === "Content-Disposition",
+    )[1];
+    expect(disposition).toMatch(/^attachment; filename="/);
+    expect(disposition).toContain(".html");
+    // не-ASCII и кавычки вычищены — header инъекция невозможна
+    expect(disposition).not.toMatch(/[^\x20-\x7e"]/);
+  });
+
+  it("skips metadata headers but still sends Content-Disposition", async () => {
     storage.get.mockResolvedValue({ stream: Readable.from(["x"]) });
     const mockRes = res();
 
     await controller.download("a.txt", mockRes);
 
-    expect(mockRes.setHeader).not.toHaveBeenCalled();
+    const headers = mockRes.setHeader.mock.calls.map(([h]) => h);
+    expect(headers).toEqual(["Content-Disposition"]);
   });
 
   it("404 when storage reports not found", async () => {

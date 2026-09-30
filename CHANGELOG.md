@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-09-30
+### Fixed
+- **Заголовок `Content-Disposition: attachment` в StorageDownloadController** (self-pentest): загруженный пользователем файл (например, `text/html`) при прямом открытии S3-URL больше не исполняется в origin-контексте браузера; имя файла вычищается до ASCII-безопасного (не-ASCII и кавычки → `_`), так что инъекция заголовка невозможна.
+- **500 на отклонённом аплоаде** (self-pentest): файл, отклонённый фильтрами размера/типа, возвращал `undefined` из `fileProcess`, и деструктуризация его полей роняла весь запрос в 500. Теперь в ответе — запись с `error` «Файл отклонён…», остальные файлы в запросе обрабатываются.
+
+### Changed
+- Toolkit pinned `#v0.22.0` (self-pentest wave 4: Access-binds fail-closed, delete tenant guards, scoped movePosition, search relation clamp, `getClientIp()`/`TRUST_PROXY`).
+
 ## [0.6.3] - 2026-09-30
 ### Added
 - `AuditModule.forRoot()` (toolkit 0.21.1): uploads and other successful mutations (non-GET 2xx) are audited as `data.created` / `data.updated` / `data.deleted` and 403s as `access.denied`, published to event-server 0.8.0's tamper-evident `audit_events` store.
