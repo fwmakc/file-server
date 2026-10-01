@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-10-01
+### Added
+- `scripts/migrate-to-s3.mjs` — перенос local-хранилища (`UPLOADS_PATH`) в бакет под теми же ключами (URL в БД не ломаются); dry-run по умолчанию, `--apply`, `--delete-local`; идемпотентен (существующие объекты пропускаются). Host-side утилита, в образ не входит.
+
 ## [0.7.0] - 2026-10-01
 ### Added
 - **Presigned URLs** (Wave 5 S3/MinIO): `POST /files/presign/upload` и `POST /files/presign/download` (только `FILE_STORAGE=s3`, иначе 501; требуется JWT). Ключ аплоада генерирует сервер (`folder/<uuid>-<sanitized-name>`) — клиент никогда не выбирает ключ, перезапись чужих объектов невозможна по построению. `S3_PRESIGN_ENDPOINT` — внешний endpoint для подписи (SigV4 покрывает Host; трафик file-server↔бакет остаётся на `S3_ENDPOINT`), `S3_PRESIGN_EXPIRES_SEC` (default 900). Presigned GET всегда содержит `ResponseContentDisposition: attachment`.
