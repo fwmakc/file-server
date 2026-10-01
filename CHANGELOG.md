@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-10-01
+### Security (Wave 6)
+- **`UPLOADS_ALLOW_TYPES` now matches exact tokens** (split on `;,|` and whitespace, case-insensitive): прежняя подстрочная проверка означала, что `image/png` в списке неявно пускал ВСЁ `image/*` — включая `image/svg+xml` (stored XSS через загруженный svg), а `text` — `text/html`. Полный mimetype, major-группа (`image`) и subtype (`png`) — три отдельных точных токена. Внимание при апгрейде: списки вида `image/png;jpeg` теперь буквально требуют точного совпадения — при необходимости добавить группу (`image`) явно.
+- **`/health/storage` не отдаёт наружу текст ошибки** (детали бакета/эндпоинта — в лог сервера, в теле 503 — общий `storage unreachable`): эндпоинт доступен без аутентификации.
+- **`ping()` проверяет и presign-эндпоинт**, когда задан `S3_PRESIGN_ENDPOINT`: он обслуживает браузеры, и его падение ломало все клиентские загрузки при «зелёном» /health/storage.
+
+### Fixed
+- **Сбой sharp на одном файле больше не роняет весь батч** (`POST /files/upload`): битый/не поддерживаемый образ возвращал 500 на весь запрос; теперь файл получает персональную запись с `error`, остальные загружаются.
+- **S3-стрим освобождается при обрыве клиента** (`GET /uploads/*`): `res.close` уничтожает стрим — иначе сокет к бакету висел до таймаута на каждый прерванный download.
+- **`migrate-to-s3.mjs` получил те же checksum-параметры клиента**, что и рантайм (`WHEN_REQUIRED`) — миграция в не-AWS бакеты падала на CRC-заголовках SDK ≥3.729.
+
+### Tests
+- allow-types: токен полного mimetype не открывает группу (svg/jpeg против `image/png`), case-insensitivity; files.service: изоляция сбоя в батче; download: destroy по close; s3.storage: ping проверяет оба эндпоинта. 118/118.
+
 ## [0.7.3] - 2026-10-01
 ### Fixed
 - **Presigned GET отклонялся SeaweedFS (SignatureDoesNotMatch)**: SDK по умолчанию (`WHEN_SUPPORTED`) добавляет `x-amz-checksum-mode=ENABLED` в query presigned GET — SigV4-верификация SeaweedFS 3.80 такие URL отвергает (параметры `UNSIGNED-PAYLOAD`, `x-id` и `response-content-disposition` проверены — безвредны). На presign-клиенте выставлены `requestChecksumCalculation`/`responseChecksumValidation: WHEN_REQUIRED`; регресс-тест на отсутствие checksum-параметров в URL.

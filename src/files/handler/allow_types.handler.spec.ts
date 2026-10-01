@@ -52,9 +52,22 @@ describe("AllowTypesHandler", () => {
     expect(handler.allowTypes(makeFile("application/pdf"))).toBe(false);
   });
 
-  it("matches on substring (video matches video/mp4)", () => {
+  it("matches the exact major token (video matches video/mp4)", () => {
     process.env.UPLOADS_ALLOW_TYPES = "video";
     expect(handler.allowTypes(makeFile("video/mp4"))).toBe(true);
+  });
+
+  it("does NOT let a full mimetype token admit the whole major group", () => {
+    // substring-семантика: "image/png".includes("image") пропускала svg+xml
+    process.env.UPLOADS_ALLOW_TYPES = "image/png";
+    expect(handler.allowTypes(makeFile("image/svg+xml"))).toBe(false);
+    expect(handler.allowTypes(makeFile("image/jpeg"))).toBe(false);
+    expect(handler.allowTypes(makeFile("image/png"))).toBe(true);
+  });
+
+  it("is case-insensitive on both allowlist and mimetype", () => {
+    process.env.UPLOADS_ALLOW_TYPES = "IMAGE/PNG";
+    expect(handler.allowTypes(makeFile("image/png"))).toBe(true);
   });
 
   it("returns false for text/plain when only image allowed", () => {

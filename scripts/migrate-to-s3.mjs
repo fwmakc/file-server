@@ -66,6 +66,10 @@ const client = new S3Client({
     accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
   },
+  // same as the runtime client (s3.storage.ts): SDK ≥3.729 defaults
+  // (WHEN_SUPPORTED) add CRC32 headers that non-AWS buckets may reject
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 // Windows-пути → s3-ключи: всегда прямые слэши, без ведущего ./

@@ -89,12 +89,21 @@ describe("presigned URLs (s3 storage)", () => {
     expect(url.toLowerCase()).not.toContain("content-type");
   });
 
-  it("ping reaches the bucket through the main client", async () => {
+  it("ping reaches the bucket through the main client and the presign endpoint", async () => {
     const send = jest.fn().mockResolvedValue({});
-    const storage = new S3Storage({ send } as any);
+    const presignSend = jest.fn().mockResolvedValue({});
+    const storage = new S3Storage({ send } as any, {
+      send: presignSend,
+    } as any);
     await expect(storage.ping()).resolves.toBeUndefined();
     expect(send).toHaveBeenCalledTimes(1);
     expect((send.mock.calls[0][0] as any).input.Bucket).toBe("test-bucket");
+    // the presign endpoint serves browsers — a dead edge host must not pass
+    // the health probe while every client-side upload fails
+    expect(presignSend).toHaveBeenCalledTimes(1);
+    expect((presignSend.mock.calls[0][0] as any).input.Bucket).toBe(
+      "test-bucket",
+    );
   });
 
   it("local storage is not presignable", () => {

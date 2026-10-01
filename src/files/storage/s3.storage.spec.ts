@@ -29,6 +29,34 @@ describe("S3Storage", () => {
     );
   });
 
+  describe("ping", () => {
+    it("probes the presign endpoint too when it differs", async () => {
+      process.env.S3_PRESIGN_ENDPOINT = "https://edge.example.com";
+      const presignSend = jest.fn();
+      const dual = new S3Storage({ send } as any, { send: presignSend } as any);
+      send.mockResolvedValue({});
+      presignSend.mockResolvedValue({});
+
+      await dual.ping();
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(presignSend).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0].constructor.name).toBe("HeadBucketCommand");
+      expect(presignSend.mock.calls[0][0].constructor.name).toBe(
+        "HeadBucketCommand",
+      );
+    });
+
+    it("probes only the main endpoint without S3_PRESIGN_ENDPOINT", async () => {
+      delete process.env.S3_PRESIGN_ENDPOINT;
+      send.mockResolvedValue({});
+
+      await storage.ping();
+
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("put sends PutObjectCommand with bucket, key and content type", async () => {
     await storage.put("a/b.txt", Buffer.from("hello"), "text/plain");
 

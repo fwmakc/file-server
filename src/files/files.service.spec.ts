@@ -244,6 +244,44 @@ describe("FilesService", () => {
       expect(result[0].url).toBeUndefined();
       expect(handlers.saveHandler.save).not.toHaveBeenCalled();
     });
+
+    it("isolates a processing failure to one file, rest of the batch uploads", async () => {
+      // corrupted image: sharp throws inside fileProcess — раньше 500
+      // ронял весь батч, остальные файлы не сохранялись
+      handlers.decodeHandler.decode
+        .mockRejectedValueOnce(new Error("Input buffer contains unsupported image data"))
+        .mockResolvedValueOnce(makeFile());
+      handlers.saveHandler.save.mockResolvedValue({
+        url: "http://example.com/ok.txt",
+      });
+
+      const result = await service.process(
+        [
+          {
+            buffer: Buffer.from("broken"),
+            mimetype: "image/png",
+            originalname: "broken.png",
+            size: 6,
+          },
+          {
+            buffer: Buffer.from("good"),
+            mimetype: "text/plain",
+            originalname: "ok.txt",
+            size: 4,
+          },
+        ] as any[],
+        {} as any,
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0].error).toContain("не обработан");
+      expect(result[0].originalname).toBe("broken.png");
+      expect(result[0].url).toBeUndefined();
+      expect(result[1].url).toBe("http://example.com/ok.txt");
+      expect(result[1].error).toBeUndefined();
+      // the good file still reached the storage
+      expect(handlers.saveHandler.save).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("pdfGenerate", () => {

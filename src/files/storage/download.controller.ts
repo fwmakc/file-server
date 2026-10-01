@@ -61,6 +61,11 @@ export class StorageDownloadController {
       .replace(/[^\x20-\x7e]/g, "_")
       .replace(/["\\]/g, "_");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    // клиент оборвал загрузку (close стреляет и после успешного конца) —
+    // иначе s3-сокет висит до таймаута на каждый прерванный download
+    res.on("close", () => {
+      (stored.stream as { destroy?: () => void })?.destroy?.();
+    });
     return new StreamableFile(stored.stream);
   }
 }

@@ -77,10 +77,23 @@ export class FilesService {
     const filesList: FilesInterface[] = [];
 
     for (const item of files) {
-      const processed = await this.fileProcess(
-        new FilesInterface(item),
-        options,
-      );
+      // corrupted image / sharp failure must reject one file, not 500 the
+      // whole batch — the rest still uploads and gets per-file statuses
+      let processed: FilesInterface;
+      try {
+        processed = await this.fileProcess(new FilesInterface(item), options);
+      } catch (e) {
+        filesList.push({
+          error:
+            "Файл не обработан: " +
+            (e instanceof Error ? e.message : String(e)),
+          mimetype: item.mimetype,
+          originalname: item.originalname,
+          size: item.size,
+          timestamp: new Date(),
+        } as FilesInterface);
+        continue;
+      }
 
       if (!processed) {
         // файл отклонён фильтрами (размер/тип): раньше save(undefined)

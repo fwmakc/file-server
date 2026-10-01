@@ -94,6 +94,14 @@ export class S3Storage implements IFileStorage {
 
   async ping(): Promise<void> {
     await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+    // The presign endpoint serves BROWSERS, not this process — a dead edge
+    // host breaks every client-side upload while this endpoint looks fine.
+    // When the two endpoints differ, probe the signer path too.
+    if (process.env.S3_PRESIGN_ENDPOINT) {
+      await this.presignClient.send(
+        new HeadBucketCommand({ Bucket: this.bucket }),
+      );
+    }
   }
 
   async presignedPut(key: string): Promise<PresignedUrl> {

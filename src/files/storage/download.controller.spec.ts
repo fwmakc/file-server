@@ -6,7 +6,8 @@ import { StorageNotFoundError } from "./storage.interface";
 describe("StorageDownloadController", () => {
   let storage: { get: jest.Mock };
   let controller: StorageDownloadController;
-  const res = () => ({ setHeader: jest.fn() }) as any;
+  const res = () =>
+    ({ setHeader: jest.fn(), on: jest.fn() }) as any;
 
   beforeEach(() => {
     storage = { get: jest.fn() };
@@ -87,5 +88,20 @@ describe("StorageDownloadController", () => {
     await expect(controller.download("a.txt", res())).rejects.toThrow(
       "network down",
     );
+  });
+
+  it("destroys the storage stream when the response closes (client abort)", async () => {
+    const stream = Readable.from(["hello"]) as any;
+    const destroy = jest.spyOn(stream, "destroy");
+    storage.get.mockResolvedValue({ stream });
+    const mockRes = res();
+
+    await controller.download("a.txt", mockRes);
+
+    // controller registered the close hook; firing it (Express does this on
+    // both abort and normal end) must tear the s3 socket down
+    const closeCb = mockRes.on.mock.calls.find(([ev]) => ev === "close")[1];
+    closeCb();
+    expect(destroy).toHaveBeenCalled();
   });
 });

@@ -1,4 +1,10 @@
-import { Inject, Controller, Get, ServiceUnavailableException } from "@nestjs/common";
+import {
+  Inject,
+  Controller,
+  Get,
+  Logger,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
 import {
   FILES_STORAGE,
@@ -23,10 +29,15 @@ export class StorageHealthController {
       await this.storage.ping();
       return { status: "ok", storage: isS3Storage() ? "s3" : "local" };
     } catch (e) {
+      // body stays generic (unauthenticated): bucket/endpoint details go to
+      // the log, not to whoever can reach /health/storage
+      new Logger(StorageHealthController.name).error(
+        `Storage ping failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
       throw new ServiceUnavailableException({
         status: "error",
         storage: isS3Storage() ? "s3" : "local",
-        message: e instanceof Error ? e.message : String(e),
+        message: "storage unreachable",
       });
     }
   }
