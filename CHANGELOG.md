@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-01
+### Added
+- **Presigned URLs** (Wave 5 S3/MinIO): `POST /files/presign/upload` и `POST /files/presign/download` (только `FILE_STORAGE=s3`, иначе 501; требуется JWT). Ключ аплоада генерирует сервер (`folder/<uuid>-<sanitized-name>`) — клиент никогда не выбирает ключ, перезапись чужих объектов невозможна по построению. `S3_PRESIGN_ENDPOINT` — внешний endpoint для подписи (SigV4 покрывает Host; трафик file-server↔бакет остаётся на `S3_ENDPOINT`), `S3_PRESIGN_EXPIRES_SEC` (default 900). Presigned GET всегда содержит `ResponseContentDisposition: attachment`.
+- **Известное ограничение**: presigned PUT не пинит Content-Type — `@aws-sdk/s3-request-presigner` жёстко добавляет его в unsignable; клиент шлёт свой Content-Type, бакет сохраняет присланный. Presigned POST policy (content-length-range) AWS SDK v3 не поддерживает.
+- `GET /health/storage` — доступность хранилища (S3: HeadBucket; local — всегда ok) с указанием активного бэкенда.
+- Boot-check хранилища: при старте пинг, недоступный бакет пишется в лог ошибкой (не крешит приложение).
+- `MAX_UPLOAD_SIZE` (МБ, default 50) — потолок multer на `POST /files/upload` (Nest отдаёт 413 при превышении).
+- Таймауты S3-клиента: 30 с на запрос, 5 с на соединение — недоступный бакет не подвешивает хендлеры.
+
+### Changed
+- Новая зависимость: `@aws-sdk/s3-request-presigner` ^3.1142.0.
+- Отключено дефолтное CRC32-чексуммирование SDK (`requestChecksumCalculation: WHEN_REQUIRED`) — без этого SDK ≥3.729 вшивает чексумму пустого тела в presigned URL и реальный PUT падает на валидации.
+
 ## [0.6.4] - 2026-09-30
 ### Fixed
 - **Заголовок `Content-Disposition: attachment` в StorageDownloadController** (self-pentest): загруженный пользователем файл (например, `text/html`) при прямом открытии S3-URL больше не исполняется в origin-контексте браузера; имя файла вычищается до ASCII-безопасного (не-ASCII и кавычки → `_`), так что инъекция заголовка невозможна.

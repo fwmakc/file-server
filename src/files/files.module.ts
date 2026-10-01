@@ -1,7 +1,10 @@
 import { Module } from "@nestjs/common";
 import { FilesController } from "@src/files/files.controller";
+import { PresignController } from "@src/files/presign.controller";
+import { StorageHealthController } from "@src/files/storage-health.controller";
 import { FilesService } from "@src/files/files.service";
 import { StorageModule } from "./storage/storage.module";
+import { StorageBootCheck } from "./storage/storage.boot.check";
 
 import { AllowTypesHandler } from "./handler/allow_types.handler";
 import { DecodeHandler } from "./handler/decode.handler";
@@ -16,8 +19,9 @@ import { SaveHandler } from "./handler/save.handler";
 
 @Module({
   imports: [StorageModule.register()],
-  controllers: [FilesController],
+  controllers: [FilesController, PresignController, StorageHealthController],
   providers: [
+    StorageBootCheck,
     FilesService,
     AllowTypesHandler,
     DecodeHandler,

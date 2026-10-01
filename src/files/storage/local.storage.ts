@@ -42,6 +42,10 @@ export class LocalStorage implements IFileStorage {
     await rm(this.resolve(key), { force: true });
   }
 
+  async ping(): Promise<void> {
+    // Local disk — reachability is the process itself.
+  }
+
   private resolve(key: string): string {
     const rootPath = resolve(this.root);
     const fullPath = resolve(rootPath, key);
