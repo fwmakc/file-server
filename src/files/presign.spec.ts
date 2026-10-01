@@ -68,6 +68,17 @@ describe("presigned URLs (s3 storage)", () => {
     expect(url).toContain("response-content-disposition=attachment");
   });
 
+  it("presigned URLs carry no checksum params (SeaweedFS rejects them)", async () => {
+    // SDK default (WHEN_SUPPORTED) adds x-amz-checksum-mode=ENABLED to GET
+    // queries — SeaweedFS 3.80 answers SignatureDoesNotMatch to such URLs
+    const storage = new S3Storage();
+    const get = await storage.presignedGet("k");
+    const put = await storage.presignedPut("k");
+    for (const { url } of [get, put]) {
+      expect(url.toLowerCase()).not.toContain("checksum");
+    }
+  });
+
   it("presigned PUT does not pin Content-Type (SDK hardcodes it unsignable)", async () => {
     // @aws-sdk/s3-request-presigner adds content-type to unsignableHeaders —
     // the client sends whatever Content-Type it wants and the bucket stores

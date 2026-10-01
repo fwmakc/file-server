@@ -159,6 +159,10 @@ export class S3Storage implements IFileStorage {
         secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
       },
       requestChecksumCalculation: "WHEN_REQUIRED",
+      // The default (WHEN_SUPPORTED) puts x-amz-checksum-mode=ENABLED into
+      // presigned GET queries — SeaweedFS's SigV4 verification rejects such
+      // URLs with SignatureDoesNotMatch. Presigned URLs must stay minimal.
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
 

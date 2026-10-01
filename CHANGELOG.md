@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] - 2026-10-01
+### Fixed
+- **Presigned GET отклонялся SeaweedFS (SignatureDoesNotMatch)**: SDK по умолчанию (`WHEN_SUPPORTED`) добавляет `x-amz-checksum-mode=ENABLED` в query presigned GET — SigV4-верификация SeaweedFS 3.80 такие URL отвергает (параметры `UNSIGNED-PAYLOAD`, `x-id` и `response-content-disposition` проверены — безвредны). На presign-клиенте выставлены `requestChecksumCalculation`/`responseChecksumValidation: WHEN_REQUIRED`; регресс-тест на отсутствие checksum-параметров в URL.
+
 ## [0.7.2] - 2026-10-01
 ### Fixed
 - **Presign-роуты возвращали 400 на любое тело**: ValidationPipe (whitelist + forbidNonWhitelisted) отвергает поля без валидационных декораторов — `filename`/`folder`/`key` в presign-DTO были голыми. Добавлены `@IsString`/`@MaxLength` (+ `@IsOptional` для folder); живая проверка на стенде (smoke, шаги 8–10).
