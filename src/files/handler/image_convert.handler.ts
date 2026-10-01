@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { FilesInterface } from "@src/files/files.interface";
-import * as sharp from "sharp";
+import sharp = require("sharp");
 import { GetImageMetadataHandler } from "./get_image_metadata.handler";
 
 @Injectable()

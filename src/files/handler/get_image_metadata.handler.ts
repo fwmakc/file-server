@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import * as sharp from "sharp";
+import sharp = require("sharp");
 
 @Injectable()
 export class GetImageMetadataHandler {
