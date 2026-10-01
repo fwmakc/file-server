@@ -54,6 +54,14 @@ describe("FilesService", () => {
   }
 
   describe("fileProcess", () => {
+    it("treats a missing options argument as no transformations", async () => {
+      // POST /files/upload may arrive without an options body at all
+      const decoded = makeFile();
+      handlers.decodeHandler.decode.mockReturnValue(decoded);
+      const result = await service.fileProcess(makeFile());
+      expect(result).toBe(decoded);
+    });
+
     it("returns undefined when maxSize check fails", async () => {
       handlers.maxSizeHandler.maxSize.mockReturnValue(false);
       const result = await service.fileProcess(makeFile(), {} as any);

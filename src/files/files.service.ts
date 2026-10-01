@@ -27,8 +27,10 @@ export class FilesService {
     protected readonly saveHandler: SaveHandler,
   ) {}
 
-  async fileProcess(file: FilesInterface, options: OptionsFilesDto) {
-    const { rename } = options;
+  async fileProcess(file: FilesInterface, options?: OptionsFilesDto) {
+    // options are optional on the wire (POST /files/upload without a body):
+    // every switch below must treat that as "no transformations"
+    const { rename } = options ?? {};
 
     const fileSize = this.maxSizeHandler.maxSize(file);
     const allowType = this.allowTypesHandler.allowTypes(file);
@@ -48,8 +50,8 @@ export class FilesService {
     return await this.decodeHandler.decode(file);
   }
 
-  async imageProcess(file: FilesInterface, options: OptionsFilesDto) {
-    const { convert, resize } = options;
+  async imageProcess(file: FilesInterface, options?: OptionsFilesDto) {
+    const { convert, resize } = options ?? {};
 
     if (resize) {
       file.buffer = await this.imageResizeHandler.imageResize(file.buffer);
