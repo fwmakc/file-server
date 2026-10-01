@@ -1,1 +1,0 @@
-http://127.0.0.1:9000/files/smoke_s3_196.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio-e4e52ea90e0530f5%2F20261001%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261001T135348Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d09777a476cfe242ec02e31e5ac54012d9746a3f3709d54fdc90547fc4b8a570
