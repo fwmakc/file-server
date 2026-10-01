@@ -23,9 +23,9 @@ export const sanitizeFilename = (name: unknown): string => {
 export class SaveHandler {
   constructor(@Inject(FILES_STORAGE) private readonly storage: IFileStorage) {}
 
-  async save(file: FilesInterface, options: OptionsFilesDto) {
-    const { replace } = options;
-    const folder = sanitizeFolderPath(options.folder);
+  async save(file: FilesInterface, options?: OptionsFilesDto) {
+    const { replace } = options ?? {};
+    const folder = sanitizeFolderPath(options?.folder);
 
     if (!file) {
       return {
