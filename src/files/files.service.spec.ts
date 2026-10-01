@@ -1,3 +1,7 @@
+// puppeteer 25 is ESM-only — jest's CJS runtime cannot parse it, and this
+// spec only stubs the handler anyway (see `handlers.pdfGenerateHandler`)
+jest.mock("puppeteer", () => ({ launch: jest.fn() }));
+
 import { FilesService } from "./files.service";
 import { FilesInterface } from "./files.interface";
 import { AllowTypesHandler } from "./handler/allow_types.handler";
