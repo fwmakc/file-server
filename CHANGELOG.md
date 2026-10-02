@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Tests
+- **Wiring-проверка реального бута** (`scripts/wiring.ts`, `npm run test:wiring`): поднимает настоящий `AppModule` в контексте приложения (БД у file-server нет — job без services-контейнера), затем живые пробы пайплайна `FilesService.process` на локальном хранилище во временном каталоге: сохранение + чтение байтов с диска, traversal-санитизация (`../../etc/evil.txt` не выходит за uploads), изоляция батча (битый файл даёт per-file error и не роняет соседние), точные токены `UPLOADS_ALLOW_TYPES` (svg+xml отклонён, png пропущен). 9/9 проверок, exit code для CI. Скрипт идёт с `ts-node --transpile-only` (типы sharp 0.35 не компилируются ts-node).
+- CI: новый job `wiring`.
+
 ## [0.7.4] - 2026-10-01
 ### Security (Wave 6)
 - **`UPLOADS_ALLOW_TYPES` now matches exact tokens** (split on `;,|` and whitespace, case-insensitive): прежняя подстрочная проверка означала, что `image/png` в списке неявно пускал ВСЁ `image/*` — включая `image/svg+xml` (stored XSS через загруженный svg), а `text` — `text/html`. Полный mimetype, major-группа (`image`) и subtype (`png`) — три отдельных точных токена. Внимание при апгрейде: списки вида `image/png;jpeg` теперь буквально требуют точного совпадения — при необходимости добавить группу (`image`) явно.

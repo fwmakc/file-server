@@ -27,7 +27,8 @@
     "lint": "eslint \"src/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "test:wiring": "ts-node --transpile-only -r tsconfig-paths/register scripts/wiring.ts"
   },
   "engines": {
     "node": ">=20"
