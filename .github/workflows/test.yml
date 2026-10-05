@@ -31,7 +31,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,7 +48,7 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: file-server
 
@@ -61,7 +61,7 @@ jobs:
           echo "TOOLKIT_REF=$(node -p "require('./file-server/package.json').dependencies['api-server-toolkit'].split('#')[1]")" >> $GITHUB_ENV
 
       # Dockerfile copies the toolkit from a sibling directory
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: fwmakc/api-server-toolkit
           ref: ${{ env.TOOLKIT_REF }}
@@ -86,7 +86,7 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -116,7 +116,7 @@ jobs:
 
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
