@@ -42,7 +42,7 @@
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/serve-static": "^5.0.0",
-    "@nestjs/swagger": "^11.0.0",
+    "@nestjs/swagger": "^12.0.2",
     "@nestjs/typeorm": "^11.0.0",
     "@sentry/nestjs": "^10.69.0",
     "api-server-toolkit": "github:fwmakc/api-server-toolkit#v0.30.0",
