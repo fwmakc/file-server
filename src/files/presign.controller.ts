@@ -16,7 +16,10 @@ import {
   IFileStorage,
 } from "./storage/storage.interface";
 import { isS3Storage } from "./storage/storage.module";
-import { sanitizeFolderPath, sanitizeRequestPath } from "./storage/storage.utils";
+import {
+  sanitizeFolderPath,
+  sanitizeRequestPath,
+} from "./storage/storage.utils";
 import { PresignUploadDto } from "./dto/presign_upload.files.dto";
 import { PresignDownloadDto } from "./dto/presign_download.files.dto";
 import { sanitizeFilename } from "./handler/save.handler";

@@ -6,10 +6,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
-import {
-  FILES_STORAGE,
-  IFileStorage,
-} from "./storage/storage.interface";
+import { FILES_STORAGE, IFileStorage } from "./storage/storage.interface";
 import { isS3Storage } from "./storage/storage.module";
 
 /**

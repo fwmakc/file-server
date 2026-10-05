@@ -6,8 +6,7 @@ import { StorageNotFoundError } from "./storage.interface";
 describe("StorageDownloadController", () => {
   let storage: { get: jest.Mock };
   let controller: StorageDownloadController;
-  const res = () =>
-    ({ setHeader: jest.fn(), on: jest.fn() }) as any;
+  const res = () => ({ setHeader: jest.fn(), on: jest.fn() }) as any;
 
   beforeEach(() => {
     storage = { get: jest.fn() };

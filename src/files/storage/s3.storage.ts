@@ -153,8 +153,7 @@ export class S3Storage implements IFileStorage {
   }
 
   private static presignClientFromEnv(): S3Client {
-    const endpoint =
-      process.env.S3_PRESIGN_ENDPOINT || process.env.S3_ENDPOINT;
+    const endpoint = process.env.S3_PRESIGN_ENDPOINT || process.env.S3_ENDPOINT;
     if (!endpoint) return this.clientFromEnv();
     return new S3Client({
       region: process.env.S3_REGION || "us-east-1",

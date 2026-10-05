@@ -17,9 +17,7 @@ export class StorageBootCheck implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.storage.ping();
-      this.logger.log(
-        `Storage reachable (${isS3Storage() ? "s3" : "local"})`,
-      );
+      this.logger.log(`Storage reachable (${isS3Storage() ? "s3" : "local"})`);
     } catch (e) {
       this.logger.error(
         `Storage NOT reachable at boot (${isS3Storage() ? "s3" : "local"}): ${

@@ -31,7 +31,9 @@ describe("presigned URLs (s3 storage)", () => {
   it("presigned PUT points at the presign endpoint with the full key path", async () => {
     const storage = new S3Storage();
     const { url, expiresIn } = await storage.presignedPut("docs/1.png");
-    expect(url.startsWith("http://edge:8080/test-bucket/docs/1.png?")).toBe(true);
+    expect(url.startsWith("http://edge:8080/test-bucket/docs/1.png?")).toBe(
+      true,
+    );
     expect(url).toContain("X-Amz-Algorithm=AWS4-HMAC-SHA256");
     expect(url).toContain("X-Amz-Expires=900");
     expect(expiresIn).toBe(900);
@@ -92,9 +94,12 @@ describe("presigned URLs (s3 storage)", () => {
   it("ping reaches the bucket through the main client and the presign endpoint", async () => {
     const send = jest.fn().mockResolvedValue({});
     const presignSend = jest.fn().mockResolvedValue({});
-    const storage = new S3Storage({ send } as any, {
-      send: presignSend,
-    } as any);
+    const storage = new S3Storage(
+      { send } as any,
+      {
+        send: presignSend,
+      } as any,
+    );
     await expect(storage.ping()).resolves.toBeUndefined();
     expect(send).toHaveBeenCalledTimes(1);
     expect((send.mock.calls[0][0] as any).input.Bucket).toBe("test-bucket");
@@ -132,9 +137,7 @@ describe("buildPresignUploadKey", () => {
   });
 
   it("falls back to 'file' for an empty filename", () => {
-    expect(buildPresignUploadKey("", "..")).toMatch(
-      /^[0-9a-f-]{36}-file$/u,
-    );
+    expect(buildPresignUploadKey("", "..")).toMatch(/^[0-9a-f-]{36}-file$/u);
   });
 });
 

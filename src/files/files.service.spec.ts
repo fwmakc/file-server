@@ -249,7 +249,9 @@ describe("FilesService", () => {
       // corrupted image: sharp throws inside fileProcess — раньше 500
       // ронял весь батч, остальные файлы не сохранялись
       handlers.decodeHandler.decode
-        .mockRejectedValueOnce(new Error("Input buffer contains unsupported image data"))
+        .mockRejectedValueOnce(
+          new Error("Input buffer contains unsupported image data"),
+        )
         .mockResolvedValueOnce(makeFile());
       handlers.saveHandler.save.mockResolvedValue({
         url: "http://example.com/ok.txt",
