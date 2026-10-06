@@ -26,7 +26,7 @@
     "dev": "nest start --watch",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "prod": "node dist/main",
-    "test": "jest",
+    "test": "jest --runInBand",
     "test:cov": "jest --coverage",
     "test:watch": "jest --watch",
     "test:wiring": "ts-node --transpile-only -r tsconfig-paths/register scripts/wiring.ts"
