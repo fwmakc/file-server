@@ -6,9 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.8.0] - 2026-10-06
+### Added — file ownership & ACL (Wave 12)
+- **file-server теперь сам владеет авторизацией файлов.** Анонимный доступ к байтам закрыт: отдача — только через `StorageDownloadController` (serve-static убран, «неохраняемого статического пути» больше нет), загрузка — только с JWT. Модель (в духе Google Drive, но на префиксах):
+  - ключи живут под **namespace аккаунта** `<accountId>/…` — рут клейтмится из токена, клиент его не выбирает;
+  - всё **private by default**: читать могут владелец, staff и явно перечисленные гранты; чужой приватный ключ отвечает **404** (существование не раскрывается);
+  - **ACL-правило** (`file_acl`) — на точный ключ файла или префикс папки (trailing slash): `visibility` (`private`|`public`) + **гранты** (`file_acl_grants`) `u:<accountId>` / `r:<role>` с режимом `read`|`write` (write влечёт read);
+  - **longest-prefix-wins**: самое длинное совпадение определяет правило (приватный оверрайд внутри публичного дерева работает);
+  - **staff** (`isSuperuser`, `admin`, `editor`) — глобальный bypass; legacy-ключи (вне namespace и без правила) — staff-only по построению;
+  - запись в общий префикс = write-грант на объемлющее правило; `visibility: public` — анонимное чтение с `Cache-Control: public, max-age=PUBLIC_CACHE_TTL` (default 300 — nginx/CDN кэшируют «горячий» путь) и inline-отдачей только для безопасных растровых типов/шрифтов/css (SVG исключён — XSS); приватное — всегда `attachment` + `private, no-store`.
+- **Роли приходят из auth-server**: access-JWT несёт только `{id, type}`; `AuthClientService.getAccountInfo` (internal call, LRU-кэш 30 с) обогащает аккаунт ролями и `isSuperuser`. `AuthClientModule.forRoot()` регистрирует паспорт-стратегию `jwt` (RS256/JWKS + `getAccountInfo`) — собственный `JwtStrategy` file-server удалён; bonus: mfa-токены и деактивированные аккаунты отклоняются на всех роутах.
+- **Гранты валидируются**: `accountId` гранта проверяется через auth internal-info — несуществующий аккаунт → 400 (список неизвестных id).
+- **Новые роуты**: `POST /files/acl` (создать/обновить правило; гранты заменяются wholesale; автор — staff или владелец namespace), `GET /files/acl/*` (инспекция самого длинного действующего правила; 404 без read-доступа), `DELETE /files/*` (exists → canWrite → удалить объект и правила под ним; 404 маскирует).
+- **user.deleted по шине**: file-server подписывается на event-server (подпись `WEBHOOK_SECRET`, ledger `webhook_processed_events` — идемпотентность по `eventId`, повторная доставка — no-op) и вычищает гранты удалённого аккаунта в той же транзакции, что и запись в ledger. `EVENT_SERVER_URL=disabled` выключает подписку (для dev/тестов).
+- **Postgres**: сервис больше не stateless — `file_acl`, `file_acl_grants`, `webhook_processed_events`; boot-миграции под advisory-lock (`runMigrationsUnderLock`), `DB_*` обязательны.
+
+### Breaking
+- **Требуется БД** (`DB_TYPE/HOST/PORT/NAME/USER/PASSWORD`) — gateway compose и `init-databases.sh` обновлены (БД `file_server`).
+- **Ключи загрузок сменили форму**: новые объекты попадают под `<accountId>/…`; существующие ссылки на старые ключи останутся рабочими только для staff — публичные данные нужно перенести под public-правило (`POST /files/acl`, `visibility: public`).
+- Папка назначения `options.folder` вне namespace требует write-гранта (403), а не молча создавала путь.
+
 ### Tests
-- **Wiring-проверка реального бута** (`scripts/wiring.ts`, `npm run test:wiring`): поднимает настоящий `AppModule` в контексте приложения (БД у file-server нет — job без services-контейнера), затем живые пробы пайплайна `FilesService.process` на локальном хранилище во временном каталоге: сохранение + чтение байтов с диска, traversal-санитизация (`../../etc/evil.txt` не выходит за uploads), изоляция батча (битый файл даёт per-file error и не роняет соседние), точные токены `UPLOADS_ALLOW_TYPES` (svg+xml отклонён, png пропущен). 9/9 проверок, exit code для CI. Скрипт идёт с `ts-node --transpile-only` (типы sharp 0.35 не компилируются ts-node).
-- CI: новый job `wiring`.
+- 170 тестов (18 сьютов): матрица решений AclService против реального Postgres (22), оба прод-паттерна через настоящий HTTP-стек с подписанными тестовыми токенами — public site-assets (анонимный inline/cacheable download, role-гранты авторов, svg-безопасность) и personal documents (владелец/staff/чужой 404, read / read+write / read+write+delete, шаринг папки) (18), webhooks ledger + purge (4), subscriber retry/disabled, download-контроллер (inline/cache/no-store/content-type) и e2e-роут. Wiring: 15 проб реального бута, включая ACL-контур.
+
+### Infra
+- CI: тестовый job поднимает Postgres и создаёт `file_server_test`; wiring-job получил postgres-сервис и `INTERNAL_API_KEY`; docker-build резолвит `EVENTSERVER_REF` и чекаутит event-server сиблингом (контракты закоммичены).
+- Dockerfile: стаб-механизм git-зависимостей расширен на `event-server/contracts` + фантом-защита (`rm -rf node_modules/api-server-toolkit node_modules/event-server` перед COPY исходников).
+
+### Tests (0.7-волна)
+- **Wiring-проверка реального бута** (`scripts/wiring.ts`, `npm run test:wiring`): поднимает настоящий `AppModule` в контексте приложения, затем живые пробы пайплайна `FilesService.process` на локальном хранилище во временном каталоге: сохранение + чтение байтов с диска, traversal-санитизация (`../../etc/evil.txt` не выходит за uploads), изоляция батча (битый файл даёт per-file error и не роняет соседние), точные токены `UPLOADS_ALLOW_TYPES` (svg+xml отклонён, png пропущен), ACL-контур (namespace, public-префикс, гранты, longest-match). 15/15 проверок, exit code для CI. Скрипт идёт с `ts-node --transpile-only` (типы sharp 0.35 не компилируются ts-node). Требует `DB_*` (boot-миграции).
+- CI: job `wiring`.
 
 ## [0.7.4] - 2026-10-01
 ### Security (Wave 6)

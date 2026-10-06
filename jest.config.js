@@ -10,5 +10,8 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/$1',
+    // jose v6 is ESM-only; the real JWKS machinery is stubbed in tests
+    '^jose$': '<rootDir>/tests/jose.stub.ts',
   },
+  testTimeout: 30000,
 };

@@ -1,5 +1,4 @@
 import { DynamicModule, Module } from "@nestjs/common";
-import { StorageDownloadController } from "./download.controller";
 import { LocalStorage } from "./local.storage";
 import { S3Storage } from "./s3.storage";
 import { FILES_STORAGE, IFileStorage } from "./storage.interface";
@@ -14,9 +13,9 @@ export class StorageModule {
   static register(): DynamicModule {
     return {
       module: StorageModule,
-      // В local-режиме отдачу выполняет ServeStaticModule; прокси-роут нужен
-      // только когда файлы лежат в S3
-      controllers: isS3Storage() ? [StorageDownloadController] : [],
+      // DownloadController is registered in FilesModule for both modes —
+      // private-by-default rules out an unguarded static path in local
+      // mode too.
       providers: [{ provide: FILES_STORAGE, useFactory: createStorage }],
       exports: [FILES_STORAGE],
     };

@@ -1,11 +1,12 @@
 /**
  * Wiring check (Wave 6, stage 2): boots the REAL AppModule (full DI graph —
- * handler chain, storage driver binding) in local-storage mode and probes
- * the critical subsystem: the file pipeline end-to-end (multer-shaped file →
- * allow-types → rename → save handler → on-disk object) plus a storage
- * round-trip and the traversal-sanitization guarantee. No database —
- * file-server is stateless apart from the storage backend. Runs under
- * ts-node — the production module system.
+ * handler chain, storage driver binding, DataSource with boot migrations)
+ * in local-storage mode and probes the critical subsystems: the file
+ * pipeline end-to-end (multer-shaped file → allow-types → rename → save
+ * handler → on-disk object), a storage round-trip, the traversal-
+ * sanitization guarantee, and ACL edge enforcement (namespace stamping +
+ * shared folder rules). Needs DB_* in the environment. Runs under ts-node —
+ * the production module system.
  *
  * Usage: npm run test:wiring
  * Exit code 0 = all probes green.
@@ -20,6 +21,9 @@ process.env.UPLOADS_URL = "/uploads";
 process.env.FILE_STORAGE = "local";
 process.env.UPLOADS_ALLOW_TYPES = "text/plain,image/png,application/pdf";
 process.env.INTERNAL_API_KEY = "wiring-internal-key";
+// Boot applies migrations (DB_* from the environment) and the bus
+// subscription is pointless in a probe process.
+process.env.EVENT_SERVER_URL = "disabled";
 
 let passed = 0;
 let failed = 0;
@@ -125,6 +129,31 @@ async function main(): Promise<void> {
   )) as Array<{ url?: string; error?: string }>;
   ok("image/png accepted by exact-token allowlist", !!png?.url && !png?.error,
     JSON.stringify(png)?.slice(0, 120));
+
+  // ── Probe: ACL edge enforcement (namespace stamping + shared folder) ──
+  console.log("probe: acl");
+  const { AclService } = await import("../src/files/acl/acl.service");
+  const acl = app.get(AclService);
+  const owner = { id: 4242, username: "wiring@example.com", roles: ["authenticated"] } as any;
+  const ownFolder = await acl.resolveWriteFolder("", owner);
+  ok("empty folder resolves to the account namespace", ownFolder === "4242", ownFolder);
+  const view = await acl.setAcl(
+    { path: "4242/shared", pathType: "folder", visibility: "public", grants: [{ role: "author", mode: "write" }] },
+    owner,
+  );
+  ok("acl rule stored with its grant", view.visibility === "public" && view.grants.length === 1,
+    JSON.stringify(view)?.slice(0, 120));
+  ok("public prefix is anonymously readable", await acl.isPublic("4242/shared/pic.png"));
+  const stranger = { id: 777, roles: ["authenticated"] } as any;
+  const strangerWrite = await acl.canWrite("4242/private.bin", stranger);
+  ok("stranger cannot write outside grants", !strangerWrite);
+  const authorWrite = await acl
+    .resolveWriteFolder("4242/shared", { id: 9, roles: ["author"] } as any)
+    .then(() => true, () => false);
+  ok("role grant opens the shared folder for writing", authorWrite);
+  const ruleView = await acl.describeMatch("4242/shared");
+  ok("rule resolution finds the longest match", ruleView?.path === "4242/shared/",
+    JSON.stringify(ruleView)?.slice(0, 120));
 
   await app.close();
   rmSync(uploadsDir, { recursive: true, force: true });

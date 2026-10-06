@@ -42,8 +42,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # ACL/webhook specs boot the real DataSource against a scratch schema
+      # (synchronize + dropSchema) — same pattern as the other services.
+      - name: Create test databases
+        run: |
+          PGPASSWORD=1234 psql -h 127.0.0.1 -U root -d postgres \
+            -c "CREATE DATABASE file_server_test;"
+
       - name: Run tests
         run: npm test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USER: root
+          DB_PASSWORD: "1234"
+          DB_NAME: file_server_test
 
   docker-build:
     runs-on: ubuntu-latest
@@ -59,6 +72,7 @@ jobs:
       - name: Resolve sibling pins from package.json
         run: |
           echo "TOOLKIT_REF=$(node -p "require('./file-server/package.json').dependencies['api-server-toolkit'].split('#')[1]")" >> $GITHUB_ENV
+          echo "EVENTSERVER_REF=$(node -p "require('./file-server/package.json').dependencies['event-server'].split('#')[1]")" >> $GITHUB_ENV
 
       # Dockerfile copies the toolkit from a sibling directory
       - uses: actions/checkout@v7
@@ -66,6 +80,14 @@ jobs:
           repository: fwmakc/api-server-toolkit
           ref: ${{ env.TOOLKIT_REF }}
           path: api-server-toolkit
+
+      # Dockerfile copies the event contracts from a sibling directory
+      # (dist/contracts is committed in event-server — no build step).
+      - uses: actions/checkout@v7
+        with:
+          repository: fwmakc/event-server
+          ref: ${{ env.EVENTSERVER_REF }}
+          path: event-server
 
       # dist/ is gitignored in the toolkit — build it for the Docker COPY
       - name: Setup Node.js
@@ -114,6 +136,29 @@ jobs:
   wiring:
     runs-on: ubuntu-latest
 
+    # The real boot now applies migrations (file-server owns its schema).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: "1234"
+          POSTGRES_DB: file_server
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: "1234"
+      DB_NAME: file_server
+      INTERNAL_API_KEY: wiring-internal-key
 
     steps:
       - uses: actions/checkout@v7

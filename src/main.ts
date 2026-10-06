@@ -16,7 +16,11 @@ import {
 import { AppModule } from "@src/app.module";
 
 async function main() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody keeps the exact request bytes for the EventDeliveryGuard
+  // (HMAC over the body as delivered, not re-serialized JSON).
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   Sentry.setup(app);
   Helmet.setup(app);
