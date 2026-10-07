@@ -119,6 +119,26 @@ file-server owns file authorization end-to-end. The model:
   auth-server internal info — unknown accounts are rejected with 400.
 - **Account deletion**: `user.deleted` events from the bus revoke all
   grants of the deleted account (idempotent via a webhook ledger table).
+- **Auth-cache invalidation**: every delivery of `user.deleted`,
+  `user.deactivated` or `user.roles_changed` also drops the auth-client
+  cache entry for that user — **on every delivery, outside the ledger**.
+  The ledger dedupes ACL writes (they must apply once), but each replica
+  owns its own auth cache, so invalidation must run per replica: role
+  revocations and deactivations take effect on all replicas immediately
+  instead of aging out over the cache TTL (30 s).
+
+### Event subscription
+
+On boot the service registers with event-server (`service: file-server`,
+patterns `user.deleted` / `user.deactivated` / `user.roles_changed`). The
+default webhook url is `http://<container-hostname>:3002[/PREFIX]/webhooks/events`
+— subscriptions key on `(service, url)`, so each `--scale` replica
+registers as its own subscriber and every one receives the delivery
+(per-replica fan-out; a dead replica is dropped by event-server's circuit
+breaker — `subscriber.deactivated` noise is expected). Set `WEBHOOK_URL`
+to override for single-instance mode. Env: `EVENT_SERVER_URL`
+(`disabled` turns the subscription off), `WEBHOOK_SECRET` (same value as
+event-server's to enable signed delivery).
 
 ### Sharing examples
 
@@ -162,6 +182,7 @@ curl http://localhost:3002/files/acl/42/docs -H "Authorization: Bearer $TOKEN"
 | `AUTH_SERVER_URL` | http://localhost:3001 | Auth server: JWKS + roles via internal API |
 | `INTERNAL_API_KEY` | — | Service-to-service key (required in the stack) |
 | `EVENT_SERVER_URL` | — | Event bus base URL; `disabled` turns the subscription off |
+| `WEBHOOK_URL` | — | Overrides the per-replica default webhook url (own container hostname) — use for single-instance mode |
 | `WEBHOOK_SECRET` | — | HMAC secret for event deliveries (set on both services) |
 | `S3_BUCKET` | — | Bucket name (required in s3 mode) |
 | `S3_REGION` | us-east-1 | S3 region |
