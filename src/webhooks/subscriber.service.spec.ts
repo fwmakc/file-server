@@ -3,6 +3,7 @@ jest.mock("api-server-toolkit/helper", () => ({
   httpGet: jest.fn(),
 }));
 
+import * as os from "os";
 import { SubscriberService } from "./subscriber.service";
 import { httpPost } from "api-server-toolkit/helper";
 
@@ -33,11 +34,56 @@ describe("SubscriberService", () => {
     expect(url).toBe("http://event-server:3005/subscribe");
     expect(body).toMatchObject({
       service: "file-server",
-      patterns: ["user.deleted"],
+      patterns: ["user.deleted", "user.deactivated", "user.roles_changed"],
       active: true,
       secret: "sekrit",
     });
     expect(init.headers["X-Internal-Api-Key"]).toBe("key-1");
+  });
+
+  it("defaults to a per-replica url: container hostname, not the service DNS name", async () => {
+    (httpPost as jest.Mock).mockResolvedValue({});
+    const service = new SubscriberService(
+      configWith({ EVENT_SERVER_URL: "http://event-server:3005" }),
+    );
+
+    await service.onApplicationBootstrap();
+
+    const [, body] = (httpPost as jest.Mock).mock.calls[0];
+    expect(body.url).toBe(
+      `http://${os.hostname()}:3002/webhooks/events`,
+    );
+  });
+
+  it("WEBHOOK_HOST overrides the hostname part, PREFIX the path", async () => {
+    (httpPost as jest.Mock).mockResolvedValue({});
+    const service = new SubscriberService(
+      configWith({
+        EVENT_SERVER_URL: "http://event-server:3005",
+        WEBHOOK_HOST: "file-server-1",
+        PREFIX: "api",
+      }),
+    );
+
+    await service.onApplicationBootstrap();
+
+    const [, body] = (httpPost as jest.Mock).mock.calls[0];
+    expect(body.url).toBe("http://file-server-1:3002/api/webhooks/events");
+  });
+
+  it("WEBHOOK_URL overrides the whole per-replica default", async () => {
+    (httpPost as jest.Mock).mockResolvedValue({});
+    const service = new SubscriberService(
+      configWith({
+        EVENT_SERVER_URL: "http://event-server:3005",
+        WEBHOOK_URL: "http://file-server:3002/webhooks/events",
+      }),
+    );
+
+    await service.onApplicationBootstrap();
+
+    const [, body] = (httpPost as jest.Mock).mock.calls[0];
+    expect(body.url).toBe("http://file-server:3002/webhooks/events");
   });
 
   it("retries with backoff when event-server is not up yet", async () => {

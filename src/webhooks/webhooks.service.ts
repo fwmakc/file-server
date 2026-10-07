@@ -1,29 +1,65 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, EntityManager } from "typeorm";
-import { UserDeletedDto, WebhookEnvelopeDto } from "event-server/contracts";
+import { AuthClientService } from "api-server-toolkit/auth-client";
+import {
+  UserDeletedDto,
+  UserDeactivatedDto,
+  UserRolesChangedDto,
+  WebhookEnvelopeDto,
+} from "event-server/contracts";
 import { FileAclGrantEntity, grantSubject } from "../files/acl/acl.entity";
 import { ProcessedEventEntity } from "./processed-event.entity";
 
 /**
- * Bus receiver for file-server. The only consumed contract is
- * `user.deleted`: grants issued to a deleted account can never match a
- * JWT again, but purging them keeps the ACL tables clean. The ledger row
- * is written in the same transaction as the purge, so a redelivery after
- * a crash neither loses nor double-applies it.
+ * Bus receiver for file-server. Consumed contracts:
+ * - `user.deleted`: grants issued to a deleted account can never match a
+ *   JWT again, but purging them keeps the ACL tables clean. The ledger row
+ *   is written in the same transaction as the purge, so a redelivery after
+ *   a crash neither loses nor double-applies it.
+ * - `user.deactivated` / `user.roles_changed`: no local mutation — the
+ *   auth-client cache entry (roles feed the staff checks in AclService)
+ *   must drop on EVERY delivery, so invalidation runs outside the ledger
+ *   (the shared webhook_processed_events table dedupes only DB writes;
+ *   each replica owns its own cache).
  */
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly authClient: AuthClientService,
+  ) {}
 
   async handleEvent(event: WebhookEnvelopeDto): Promise<void> {
     switch (event.pattern) {
       case "user.deleted":
+        this.authClient.clearCache((event.payload as UserDeletedDto).userId);
         await this.processOnce(
           event,
-          async (em) => await this.onUserDeleted(em, event.payload as UserDeletedDto),
+          async (em) =>
+            await this.onUserDeleted(em, event.payload as UserDeletedDto),
+        );
+        break;
+      case "user.deactivated":
+        this.authClient.clearCache(
+          (event.payload as UserDeactivatedDto).userId,
+        );
+        this.logger.log(
+          `Invalidated auth cache: userId=${
+            (event.payload as UserDeactivatedDto).userId
+          } (deactivated)`,
+        );
+        break;
+      case "user.roles_changed":
+        this.authClient.clearCache(
+          (event.payload as UserRolesChangedDto).userId,
+        );
+        this.logger.log(
+          `Invalidated auth cache: userId=${
+            (event.payload as UserRolesChangedDto).userId
+          } (roles_changed)`,
         );
         break;
       default:

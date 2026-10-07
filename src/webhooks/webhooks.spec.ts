@@ -15,6 +15,7 @@ import { WebhooksService } from "./webhooks.service";
 describe("webhooks → ACL grant purge (db)", () => {
   let service: WebhooksService;
   let acl: AclService;
+  let authMock: { clearCache: jest.Mock };
   let purgeSpy: jest.SpyInstance;
 
   const envelope = (eventId: number, pattern: string, payload: object) => ({
@@ -49,6 +50,7 @@ describe("webhooks → ACL grant purge (db)", () => {
     })
       .overrideProvider(AuthClientService)
       .useValue({
+        clearCache: jest.fn(),
         getAccountInfo: async (id: number) =>
           id === 42 || id === 43
             ? { id, username: `u${id}@t`, isActivated: true, roles: [] }
@@ -57,6 +59,7 @@ describe("webhooks → ACL grant purge (db)", () => {
       .compile();
     service = moduleRef.get(WebhooksService);
     acl = moduleRef.get(AclService);
+    authMock = moduleRef.get(AuthClientService) as any;
     purgeSpy = jest.spyOn(acl.constructor.prototype, "purgeAccount");
   });
 
@@ -76,14 +79,40 @@ describe("webhooks → ACL grant purge (db)", () => {
     );
 
     expect(await acl.canRead("42/shared/x.txt", stranger)).toBe(false);
+    // invalidation is per-delivery, outside the ledger
+    expect(authMock.clearCache).toHaveBeenCalledWith(43);
   });
 
-  it("a redelivery with the same eventId is a ledger no-op", async () => {
+  it("a redelivery with the same eventId is a ledger no-op — but still invalidates the cache", async () => {
     purgeSpy.mockClear();
+    authMock.clearCache.mockClear();
     await service.handleEvent(
       envelope(1, "user.deleted", { userId: 43, username: "x@t", email: "x@t" }),
     );
     expect(purgeSpy).not.toHaveBeenCalled();
+    expect(authMock.clearCache).toHaveBeenCalledWith(43);
+  });
+
+  it("roles_changed / deactivated only invalidate the cache", async () => {
+    authMock.clearCache.mockClear();
+    await service.handleEvent(
+      envelope(10, "user.roles_changed", {
+        userId: 43,
+        username: "x@t",
+        email: "x@t",
+        roles: [],
+      }),
+    );
+    await service.handleEvent(
+      envelope(11, "user.deactivated", {
+        userId: 43,
+        username: "x@t",
+        email: "x@t",
+      }),
+    );
+    expect(authMock.clearCache).toHaveBeenCalledTimes(2);
+    expect(authMock.clearCache).toHaveBeenNthCalledWith(1, 43);
+    expect(authMock.clearCache).toHaveBeenNthCalledWith(2, 43);
   });
 
   it("a different eventId still purges (idempotent by construction)", async () => {

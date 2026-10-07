@@ -14,6 +14,8 @@ import { AclController } from "./acl.controller";
   ],
   controllers: [AclController],
   providers: [AclService],
-  exports: [AclService],
+  // Re-export AuthClientModule so webhooks (cache invalidation) resolve the
+  // same shared AuthClientService singleton without a second import chain.
+  exports: [AclService, AuthClientModule],
 })
 export class AclModule {}

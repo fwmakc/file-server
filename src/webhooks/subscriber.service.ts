@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import * as os from "os";
 import { httpPost } from "api-server-toolkit/helper";
 
 @Injectable()
@@ -9,7 +10,13 @@ export class SubscriberService implements OnApplicationBootstrap {
   private readonly apiKey: string;
   private readonly webhookUrl: string;
   private readonly webhookSecret?: string;
-  private readonly patterns = ["user.deleted"];
+  // Lifecycle events plus roles_changed — the latter two only invalidate
+  // the auth-client cache (roles feed the staff checks in AclService).
+  private readonly patterns = [
+    "user.deleted",
+    "user.deactivated",
+    "user.roles_changed",
+  ];
 
   constructor(private readonly config: ConfigService) {
     this.eventServerUrl = this.config.get<string>(
@@ -18,9 +25,16 @@ export class SubscriberService implements OnApplicationBootstrap {
     );
     this.apiKey = this.config.get<string>("INTERNAL_API_KEY", "changeme");
     const prefix = this.config.get<string>("PREFIX") || "";
+    // Default: every replica subscribes with its OWN url (docker DNS
+    // resolves the container hostname to that replica). Subscriptions key
+    // on (service, url), so N replicas = N subscribers, each getting the
+    // delivery — otherwise a revoked role would drop from one replica's
+    // cache only. WEBHOOK_URL still overrides everything (single mode
+    // behind a shared DNS name), WEBHOOK_HOST overrides just the host.
+    const host = this.config.get<string>("WEBHOOK_HOST") || os.hostname();
     this.webhookUrl = this.config.get<string>(
       "WEBHOOK_URL",
-      `http://file-server:3002${prefix ? `/${prefix}` : ""}/webhooks/events`,
+      `http://${host}:3002${prefix ? `/${prefix}` : ""}/webhooks/events`,
     );
     // Shared HMAC secret for signed deliveries. Passed at registration so
     // event-server stores it for this subscriber; EventDeliveryGuard
