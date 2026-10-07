@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -96,11 +97,22 @@ export class S3Storage implements IFileStorage {
     await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
     // The presign endpoint serves BROWSERS, not this process — a dead edge
     // host breaks every client-side upload while this endpoint looks fine.
-    // When the two endpoints differ, probe the signer path too.
+    // Probe the signer path too, but only warn: a segmented network keeps it
+    // unreachable from this container by design (dev published port binds the
+    // host loopback), and /health/storage must reflect what THIS process
+    // can serve.
     if (process.env.S3_PRESIGN_ENDPOINT) {
-      await this.presignClient.send(
-        new HeadBucketCommand({ Bucket: this.bucket }),
-      );
+      try {
+        await this.presignClient.send(
+          new HeadBucketCommand({ Bucket: this.bucket }),
+        );
+      } catch (e) {
+        new Logger(S3Storage.name).warn(
+          `Presign endpoint unreachable from this process (clients may still reach it): ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+      }
     }
   }
 

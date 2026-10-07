@@ -1,7 +1,7 @@
 # File Server
 
 [![Tests](https://github.com/fwmakc/file-server/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/file-server/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-v0.8.1-blue)](https://github.com/fwmakc/file-server/releases)
+[![Version](https://img.shields.io/badge/version-v0.8.2-blue)](https://github.com/fwmakc/file-server/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/file-server/blob/master/LICENSE)
 
 > Reference implementation: file service with built-in authorization — uploads, ACL sharing, image processing, PDF generation.
@@ -198,7 +198,17 @@ the backend is selected by `FILE_STORAGE`:
   volume.
 - **`s3`** — files stored in any S3-compatible API (AWS S3, MinIO,
   Yandex Object Storage). Required for horizontal scaling: all instances
-  see the same data and containers stay stateless.
+  see the same data and containers stay stateless. Verified live with
+  `--scale file-server=2` (SeaweedFS): an upload landing on one replica is
+  served by both — the shared bucket removes the local mode's
+  single-instance limit.
+
+Reachability: `GET /health/storage` probes the bucket **from this process**
+(`S3_ENDPOINT`). The client-facing `S3_PRESIGN_ENDPOINT` is probed too, but a
+failure there only logs a WARNING — segmented networks routinely keep the
+client endpoint unreachable from the server container (dev published port,
+edge subdomain behind a CDN), and it serves browsers, not this process, so it
+must not flip readiness.
 
 In both modes bytes are served by the same ACL-guarded download route at
 `UPLOADS_URL` (`/uploads/<key>`), so object URLs are identical — public

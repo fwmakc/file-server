@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-10-07
+### Changed
+- `ping()` больше не считает недостижимый `S3_PRESIGN_ENDPOINT` ошибкой
+  хранилища: отказ presign-лега пишется WARN-ом (`/health/storage` и
+  boot-check остаются на основной пробе `S3_ENDPOINT`). Пресигн-эндпоинт
+  обслуживает браузеры, а не этот процесс — в сегментированных сетях он
+  регулярно недостижим из контейнера (dev: опубликованный порт на host
+  loopback; prod: edge-субдомен), и такой шум на каждом буте не должен
+  выглядеть как ERROR хранилища.
+### Verified
+- Живой стенд (SeaweedFS + `S3_PUBLIC_BUCKET=true` + `S3_PUBLIC_URL`):
+  публичная папка → CDN-URL, прямой анонимный GET 200; приватный ключ →
+  прокси `/uploads`, аноним 404, bearer 200; presigned PUT/GET 200;
+  `--scale file-server=2` — upload в одну реплику, скачивание обеими.
+
 ## [0.8.1] - 2026-10-07
 ### Fixed
 - **CDN-ссылки больше не обходят ACL.** При `FILE_STORAGE=s3` с настроенным

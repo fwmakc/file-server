@@ -55,6 +55,18 @@ describe("S3Storage", () => {
 
       expect(send).toHaveBeenCalledTimes(1);
     });
+
+    it("swallows a dead presign endpoint (warn only — /health/storage stays on the main leg)", async () => {
+      process.env.S3_PRESIGN_ENDPOINT = "https://edge.example.com";
+      const presignSend = jest.fn();
+      const dual = new S3Storage({ send } as any, { send: presignSend } as any);
+      send.mockResolvedValue({});
+      presignSend.mockRejectedValue(new Error("connect ECONNREFUSED 127.0.0.1:9000"));
+
+      await expect(dual.ping()).resolves.toBeUndefined();
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(presignSend).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("put sends PutObjectCommand with bucket, key and content type", async () => {
