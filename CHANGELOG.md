@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.3] - 2026-10-07
 
 ### Added
 - **Кросс-репличная инвалидация auth-client через шину событий**: каждая доставка `user.deleted` / `user.deactivated` / `user.roles_changed` сбрасывает кэш auth-client для этого пользователя — вне ledger (`webhook_processed_events` дедуплицирует только ACL-мутации, у каждой реплики свой кэш). Отзыв роли и деактивация действуют на всех репликах сразу, а не по истечении TTL (30 с). Подписки: паттерны расширены до трёх; webhook-url по умолчанию строится от hostname контейнера — N реплик = N подписчиков в event-server (per-replica fan-out), `WEBHOOK_URL` перекрывает для одиночного режима. Пин event-server#v1.6.0 (`UserRolesChangedDto`).

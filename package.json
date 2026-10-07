@@ -1,6 +1,6 @@
 {
   "name": "file-server",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "File service — upload, image processing, PDF generation, static serving",
   "private": true,
   "license": "MIT",
