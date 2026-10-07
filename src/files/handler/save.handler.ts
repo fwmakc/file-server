@@ -4,6 +4,7 @@ import { OptionsFilesDto } from "../dto/options.files.dto";
 import { FILES_STORAGE, IFileStorage } from "../storage/storage.interface";
 import { isS3Storage } from "../storage/storage.module";
 import { sanitizeFolderPath } from "../storage/storage.utils";
+import { AclService } from "../acl/acl.service";
 
 /**
  * Оставляет только имя файла: любой путь (../, абсолютные пути, слэши)
@@ -21,7 +22,10 @@ export const sanitizeFilename = (name: unknown): string => {
 
 @Injectable()
 export class SaveHandler {
-  constructor(@Inject(FILES_STORAGE) private readonly storage: IFileStorage) {}
+  constructor(
+    @Inject(FILES_STORAGE) private readonly storage: IFileStorage,
+    private readonly acl: AclService,
+  ) {}
 
   async save(file: FilesInterface, options?: OptionsFilesDto) {
     const { replace } = options ?? {};
@@ -57,20 +61,25 @@ export class SaveHandler {
     }
 
     return {
-      url: `${this.urlBase()}/${key}`,
+      url: `${await this.urlBase(key)}/${key}`,
     };
   }
 
   /**
    * База публичных URL: при S3 с настроенным S3_PUBLIC_URL (CDN/публичный
-   * бакет) отдача идёт мимо file-server, иначе — через DOWNLOAD-роут по
-   * UPLOADS_URL (тот же путь, что обслуживает статика в local-режиме).
+   * бакет) отдача идёт мимо file-server, поэтому CDN-ссылка выдаётся только
+   * для ключей, которые правило ACL уже сделало публичными; приватные
+   * объекты всегда получают DOWNLOAD-роут (UPLOADS_URL) — край с проверкой
+   * прав, даже если правило опубликуют позже.
    */
-  private urlBase(): string {
-    const base =
+  private async urlBase(key: string): Promise<string> {
+    const cdn =
       isS3Storage() && process.env.S3_PUBLIC_URL
-        ? process.env.S3_PUBLIC_URL
-        : process.env.UPLOADS_URL || "/uploads";
-    return base.replace(/\/+$/u, "");
+        ? process.env.S3_PUBLIC_URL.replace(/\/+$/u, "")
+        : null;
+    if (cdn && (await this.acl.isPublic(key))) {
+      return cdn;
+    }
+    return (process.env.UPLOADS_URL || "/uploads").replace(/\/+$/u, "");
   }
 }

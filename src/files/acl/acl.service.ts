@@ -100,16 +100,25 @@ export class AclService {
   ) {}
 
   /**
-   * Longest-prefix resolution. The rule table is ops-scale (humans create
-   * rules), so a full scan with in-memory matching is correct and cheap;
-   * switch to a LIKE query if it ever grows beyond that.
+   * Longest-prefix resolution. A rule can only match at the exact file key
+   * or at one of the key's ancestor folder prefixes, so a bounded IN query
+   * over those candidates — served by the unique prefix index — answers in
+   * O(key depth) index lookups regardless of the rule count (isPublic runs
+   * on every anonymous download, so the hot path must not scan the table).
    */
   async resolveAcl(key: string): Promise<FileAclEntity | null> {
-    const rows = await this.acls.find();
-    const matches = rows.filter(
-      (row) => key === row.prefix || key.startsWith(row.prefix),
-    );
-    return matches.sort((a, b) => b.prefix.length - a.prefix.length)[0] ?? null;
+    const segments = key.split("/");
+    const candidates = [key, `${key}/`];
+    for (let i = 1; i < segments.length; i++) {
+      candidates.push(`${segments.slice(0, i).join("/")}/`);
+    }
+    const rows = await this.acls
+      .createQueryBuilder("acl")
+      .where("acl.prefix IN (:...candidates)", { candidates })
+      .orderBy("LENGTH(acl.prefix)", "DESC")
+      .limit(1)
+      .getMany();
+    return rows[0] ?? null;
   }
 
   /** Anonymous read: no JWT required, served straight from the edge. */

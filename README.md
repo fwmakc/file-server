@@ -1,7 +1,7 @@
 # File Server
 
 [![Tests](https://github.com/fwmakc/file-server/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/file-server/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-v0.8.0-blue)](https://github.com/fwmakc/file-server/releases)
+[![Version](https://img.shields.io/badge/version-v0.8.1-blue)](https://github.com/fwmakc/file-server/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/file-server/blob/master/LICENSE)
 
 > Reference implementation: file service with built-in authorization — uploads, ACL sharing, image processing, PDF generation.
@@ -169,7 +169,7 @@ curl http://localhost:3002/files/acl/42/docs -H "Authorization: Bearer $TOKEN"
 | `S3_ACCESS_KEY_ID` | — | S3 access key |
 | `S3_SECRET_ACCESS_KEY` | — | S3 secret key |
 | `S3_FORCE_PATH_STYLE` | false | `true` for MinIO-style path addressing (`endpoint/bucket/key`) |
-| `S3_PUBLIC_URL` | — | Absolute base returned in upload URLs (CDN / public bucket); unset = serve via file-server proxy |
+| `S3_PUBLIC_URL` | — | Absolute base returned in upload URLs (CDN / public bucket) **for keys under a public rule**; private keys always get the ACL-proxied `UPLOADS_URL` link. Note: the bucket itself stays publicly readable in this mode — treat object keys as capability URLs |
 | `S3_PRESIGN_ENDPOINT` | — | External endpoint the client uses for presigned URLs |
 | `S3_PRESIGN_EXPIRES_SEC` | 900 | Presigned URL lifetime |
 
@@ -203,8 +203,10 @@ the backend is selected by `FILE_STORAGE`:
 In both modes bytes are served by the same ACL-guarded download route at
 `UPLOADS_URL` (`/uploads/<key>`), so object URLs are identical — public
 prefixes anonymously and cacheable, private ones only to owner/grants/staff.
-Set `S3_PUBLIC_URL` (CDN or a public bucket base) to return direct URLs in
-upload responses for public content.
+Set `S3_PUBLIC_URL` (CDN or a public bucket base) to return direct CDN URLs
+in upload responses — but only for keys a rule already makes public; private
+uploads always get the ACL-proxied `UPLOADS_URL` link, so a CDN can never
+bypass the authorization edge for them.
 
 MinIO example:
 

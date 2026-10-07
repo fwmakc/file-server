@@ -9,6 +9,7 @@ describe("SaveHandler", () => {
     get: jest.Mock;
     delete: jest.Mock;
   };
+  let acl: { isPublic: jest.Mock };
   const envBackup = { ...process.env };
 
   beforeEach(() => {
@@ -18,7 +19,9 @@ describe("SaveHandler", () => {
       get: jest.fn(),
       delete: jest.fn(),
     };
-    handler = new SaveHandler(storage as any);
+    // Default: no public rule — every save returns the ACL-proxied URL.
+    acl = { isPublic: jest.fn().mockResolvedValue(false) };
+    handler = new SaveHandler(storage as any, acl as any);
     process.env.UPLOADS_PATH = "/tmp/uploads";
     process.env.UPLOADS_URL = "http://example.com/files";
     delete process.env.FILE_STORAGE;
@@ -136,13 +139,26 @@ describe("SaveHandler", () => {
   });
 
   describe("URL base selection", () => {
-    it("uses S3_PUBLIC_URL in s3 mode when configured", async () => {
+    it("uses S3_PUBLIC_URL in s3 mode for a public key", async () => {
+      process.env.FILE_STORAGE = "s3";
+      process.env.S3_PUBLIC_URL = "https://cdn.example.com";
+      acl.isPublic.mockResolvedValue(true);
+
+      const result = await handler.save(makeFile(), {} as any);
+
+      expect(result.url).toBe("https://cdn.example.com/test.txt");
+    });
+
+    // The CDN serves bytes without file-server: a private key must never
+    // get a CDN URL, or the ACL edge is bypassed by construction.
+    it("keeps a private key on the download proxy even with S3_PUBLIC_URL set", async () => {
       process.env.FILE_STORAGE = "s3";
       process.env.S3_PUBLIC_URL = "https://cdn.example.com";
 
       const result = await handler.save(makeFile(), {} as any);
 
-      expect(result.url).toBe("https://cdn.example.com/test.txt");
+      expect(acl.isPublic).toHaveBeenCalledWith("test.txt");
+      expect(result.url).toBe("http://example.com/files/test.txt");
     });
 
     it("falls back to UPLOADS_URL (download proxy) in s3 mode without S3_PUBLIC_URL", async () => {
