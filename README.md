@@ -301,6 +301,67 @@ Already have a file storage solution? You can adopt file-server selectively:
 
 ---
 
+## Production notes
+
+Deployment runbook for the whole stack (service registry, secrets, TLS,
+upgrades, scaling, operations): [gateway-server/docs/DEPLOYMENT.md](https://github.com/fwmakc/gateway-server/blob/master/docs/DEPLOYMENT.md).
+
+**Role in the stack.** Everything binary: uploads (multipart), downloads
+(proxy or presigned), image processing, PDF generation (Puppeteer + EJS),
+and per-file ACL — ownership, sharing grants, public folders. Storage is
+pluggable: local volume (dev) or S3 (production profile; SeaweedFS by
+default, MinIO swap documented in the gateway's `docs/s3-storage.md`).
+
+**Wiring.**
+
+- Edge routes: `/files` (upload/ACL/delete API, 10 req/s zone) and
+  `/uploads` (downloads — own 50 req/s zone + nginx edge cache that obeys
+  file-server's `Cache-Control` headers).
+- Every `/uploads` hit is ACL-checked: public keys stream with
+  `Cache-Control: public, max-age=PUBLIC_CACHE_TTL` (edge-cached); private
+  keys are 404-masked and answered `private, no-store` (never cached).
+- Subscribes to `user.deactivated` / `deleted` / `roles_changed` **per
+  replica** (each `--scale` replica registers its own hostname URL) to purge
+  ACL grants of dead accounts.
+- S3 backend: presigned PUT/GET let clients talk to the bucket directly;
+  file-server only authorizes and never proxies those bytes.
+
+**Production configuration.**
+
+| Concern | Setting |
+|---------|---------|
+| Storage | compose S3 profile: `FILE_STORAGE=s3` + `S3_*` (requires `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`) |
+| Presign endpoint | prod: `S3_PRESIGN_ENDPOINT=https://s3.<domain>` — a subdomain passthrough to `s3:9000` (SigV4 signs the Host; path rewrites break signatures) |
+| Bucket mode | private by default (`S3_PUBLIC_BUCKET=false`); public/CDN mode is the explicit opt-in paired with `S3_PUBLIC_URL` |
+| Limits | `MAX_UPLOAD_SIZE` (nginx `client_max_body_size` matches at 50 MB), `UPLOADS_ALLOW_TYPES`, `PUBLIC_CACHE_TTL` (edge TTL, default 300 s) |
+
+**Scaling.** Do not scale on the local driver — `uploads_data` is a
+per-container volume. On S3 the service is stateless and scales; the edge
+cache absorbs download load first anyway (an 11.4k req/s flood measured
+0.44% file-server CPU, 2026-10-07). After scale changes, prune dead
+per-replica subscriber entries in event-server (circuit breaker
+deactivates them; the registry rows remain).
+
+**Verified under load** (dates and raw numbers:
+[gateway-server/load-tests/results.md](https://github.com/fwmakc/gateway-server/blob/master/load-tests/results.md)):
+
+- 52 CI tests; live pentest 27/27 including the privacy probes (anonymous
+  GET on a private key → 404 indistinguishable from a missing key; private
+  responses carry `private, no-store` — unit-tested and never edge-cached).
+- Upload+download loop: 52.4 (local) / 51.6 (S3) req/s — the backend choice
+  costs ~+19% avg latency at that concurrency, invisible at real scale.
+- Presigned big files: 250 MB PUT 67 MB/s, GET 164 MB/s, sha256 round-trip
+  verified; 100 MB GET 140 MB/s.
+- Static edge (2026-10-07): 30 req/s asset load went 64.5% → 0% 429 with
+  the dedicated zone; warm hits ~1 ms median.
+
+**Semantics to accept.** In public-bucket mode the bucket itself is
+anonymously readable — privacy is enforced at the `/uploads` proxy (ACL +
+404-masking), not at the bucket. 404-masking means a private file and a
+missing file are indistinguishable from the outside.
+
+---
+
 ## Versioning
 
 Each service versions **independently** (semver): a `vX.Y.Z` git tag marks the released state of each repo. There is no stack-wide shared major — compatibility is guaranteed by **exact dependency pins**, not by version numbers.
@@ -317,7 +378,7 @@ Each service versions **independently** (semver): a `vX.Y.Z` git tag marks the r
 
 ### Current versions
 
-> Synced across all repos on 2026-10-07 (wave 13). Source of truth: the `v*` git tags at each repo HEAD.
+> Synced across all repos on 2026-10-08 (wave 15). Source of truth: the `v*` git tags at each repo HEAD.
 
 | Service | Version |
 |---------|---------|
@@ -328,5 +389,5 @@ Each service versions **independently** (semver): a `vX.Y.Z` git tag marks the r
 | [file-server](https://github.com/fwmakc/file-server) | v0.8.3 |
 | [chat-server](https://github.com/fwmakc/chat-server) | v0.1.3 (frozen) |
 | [api-server](https://github.com/fwmakc/api-server) | v0.9.0 |
-| [gateway-server](https://github.com/fwmakc/gateway-server) | v0.6.0 (infra) |
+| [gateway-server](https://github.com/fwmakc/gateway-server) | v0.7.0 (infra) |
 | [api-server-scaffold](https://github.com/fwmakc/api-server-scaffold) | v0.1.5 |
